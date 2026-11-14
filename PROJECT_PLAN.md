@@ -1,55 +1,44 @@
-# XhubREA – Project Plan
+# XhubREA — Project Plan
 
 ## Vision
-XhubREA is an AI-powered research assistant for understanding Android apps and games and building independent alternatives.
+A learning-focused Android research assistant for understanding apps and games the user owns, open-source projects, or apps they have explicit permission to inspect, then planning independent implementations.
 
-## Main Features
+## Implemented in the current MVP
+- Jetpack Compose dashboard and local project notes.
+- APK picker and read-only package metadata inspection.
+- Declared permissions and component inventory.
+- Exported component metadata review.
+- DEX header and identifier-table structure report.
+- APK resource/file inventory, file-type summary and package-layout overview.
+- Heuristic game/framework detection and native library inventory.
+- APK signer certificate metadata report.
+- Basic two-APK metadata comparison.
+- Full Research Lab summary for code/DEX presence, resource/UI filenames, framework hints, native libraries, hostname-only network hints and archive checks.
+- Combined TXT report save/share.
+- GitHub Actions debug APK build.
 
-1. APK Inspector
-   - App name and package name
-   - Version information
-   - Permissions
-   - Minimum and target Android SDK
-
-2. App Research
-   - Understand app screens
-   - Document features
-   - Map navigation and workflows
-
-3. Game Research
-   - Study gameplay mechanics
-   - Understand controls and game structure
-   - Create original game concepts
-
-4. AI Assistant
-   - Explain technical findings
-   - Generate development plans
-   - Help write original code
-
-5. Project Builder
-   - Create Android project templates
-   - Generate starter code
-   - Organize project files
+## Planned follow-up work (not yet implemented)
+1. Binary AndroidManifest.xml decoder with tested parsing.
+2. Resource table/value decoder and safe preview of supported image assets.
+3. Real DEX instruction disassembly/decompilation using a maintained parser library, with strict size limits.
+4. Structured UI/layout analysis for supported resource formats.
+5. More reliable API endpoint discovery with false-positive controls; no secret/token extraction.
+6. Project blueprint export and starter-project generation.
+7. Automated unit/UI test templates and test execution guidance.
+8. Optional AI provider integration only after explicit API-key setup, privacy notice and secure key storage.
+9. Device-level usability, performance, accessibility and APK compatibility testing.
 
 ## Technology
-- Kotlin
-- Jetpack Compose
-- Python (optional analysis tools)
-- GitHub
-- AI API (optional)
+- Kotlin, Android SDK, Jetpack Compose and Gradle.
+- GitHub Actions for repeatable debug builds.
+- Optional future AI provider; no cloud AI is currently connected.
 
-## Safety Rules
-- Analyze apps we own, have permission to inspect, or that are open source.
-- Do not bypass DRM, authentication, licenses, or anti-cheat systems.
-- Do not extract passwords, private data, or secret tokens.
-- Build independent implementations using original code and assets.
+## Safety and originality
+- Inspect only owned, open-source or explicitly authorized APKs.
+- Never bypass DRM, authentication, licenses, payment checks or anti-cheat.
+- Do not extract secrets, credentials or private user data.
+- Do not execute unknown APKs or native libraries.
+- Build alternatives with original code, branding and assets.
 
-## Development Roadmap
-
-- Phase 1: Project setup
-- Phase 2: Android dashboard
-- Phase 3: APK import
-- Phase 4: APK metadata inspection
-- Phase 5: App and game research tools
-- Phase 6: AI assistant integration
-- Phase 7: Testing and improvementsdocs/PROJECT_PLAN.md
+## Quality gate
+A GitHub Actions build passing proves compilation and APK packaging only. Before calling the app complete, also test APK selection, analysis, error handling, report export, large files, Android-version compatibility and usability on a real device.
