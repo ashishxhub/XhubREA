@@ -120,6 +120,11 @@ private fun XhubReaDashboard() {
                         }
                         val targetSdk = packageInfo.applicationInfo?.targetSdkVersion?.toString()
                             ?: "Unknown"
+                        val appFlags = packageInfo.applicationInfo?.flags ?: 0
+                        val appEnabled = packageInfo.applicationInfo?.enabled?.toString() ?: "Unknown"
+                        val debuggable = (appFlags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+                        val allowBackup = (appFlags and android.content.pm.ApplicationInfo.FLAG_ALLOW_BACKUP) != 0
+                        val testOnly = (appFlags and android.content.pm.ApplicationInfo.FLAG_TEST_ONLY) != 0
 
                         val permissionList = packageInfo.requestedPermissions?.toList().orEmpty()
                         val permissionAnalysis = permissionList.map { permissionName ->
@@ -134,10 +139,18 @@ private fun XhubReaDashboard() {
                             }.getOrDefault("Unknown / not available")
                             "$permissionName — $category"
                         }
-                        val activities = packageInfo.activities?.map { it.name }.orEmpty()
-                        val services = packageInfo.services?.map { it.name }.orEmpty()
-                        val receivers = packageInfo.receivers?.map { it.name }.orEmpty()
-                        val providers = packageInfo.providers?.map { it.name }.orEmpty()
+                        val activities = packageInfo.activities?.map {
+                            "${it.name} | exported=${it.exported} | enabled=${it.enabled}"
+                        }.orEmpty()
+                        val services = packageInfo.services?.map {
+                            "${it.name} | exported=${it.exported} | enabled=${it.enabled}"
+                        }.orEmpty()
+                        val receivers = packageInfo.receivers?.map {
+                            "${it.name} | exported=${it.exported} | enabled=${it.enabled}"
+                        }.orEmpty()
+                        val providers = packageInfo.providers?.map {
+                            "${it.name} | exported=${it.exported} | enabled=${it.enabled}"
+                        }.orEmpty()
 
                         buildString {
                             appendLine("APK metadata (read-only)")
@@ -148,6 +161,10 @@ private fun XhubReaDashboard() {
                             appendLine("Version code: $version")
                             appendLine("Minimum SDK: $minSdk")
                             appendLine("Target SDK: $targetSdk")
+                            appendLine("Application enabled: $appEnabled")
+                            appendLine("Debuggable: $debuggable")
+                            appendLine("Allow backup flag: $allowBackup")
+                            appendLine("Test-only flag: $testOnly")
                             appendLine()
                             appendLine("Declared permissions (${permissionList.size})")
                             appendLine(permissionList.take(30).joinToString("\n").ifBlank { "None declared" })
@@ -273,6 +290,7 @@ private fun XhubReaDashboard() {
             InfoCard(title = "Package and version", body = reportSection(apkReport, "Package:"))
             InfoCard(title = "File size", body = reportSection(apkReport, "APK file size:"))
             InfoCard(title = "Android compatibility", body = reportSection(apkReport, "Minimum SDK:"))
+            InfoCard(title = "Application manifest flags", body = reportSection(apkReport, "Application enabled:"))
             Button(
                 onClick = {
                     if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect")) {
