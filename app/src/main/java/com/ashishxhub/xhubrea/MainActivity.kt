@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -103,6 +104,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun XhubReaDashboard() {
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
     val scope = rememberCoroutineScope()
     val preferences = remember {
         context.getSharedPreferences("xhubrea_project", android.content.Context.MODE_PRIVATE)
@@ -389,8 +391,10 @@ private fun XhubReaDashboard() {
                     requestHighRefresh = it
                     preferences.edit().putBoolean("high_refresh", it).apply()
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        val rate = if (it) windowManager.defaultDisplay.supportedModes.maxOfOrNull { mode -> mode.refreshRate } ?: 60f else 60f
-                        window.attributes = window.attributes.apply { preferredRefreshRate = rate }
+                        val rate = if (it) activity?.windowManager?.defaultDisplay?.supportedModes?.maxOfOrNull { mode -> mode.refreshRate } ?: 60f else 60f
+                        activity?.window?.let { appWindow ->
+                            appWindow.attributes = appWindow.attributes.apply { preferredRefreshRate = rate }
+                        }
                     }
                 }
                 InfoCard(
