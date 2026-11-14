@@ -84,9 +84,15 @@ private fun XhubReaDashboard() {
                             }
                         } ?: error("Could not open the selected file.")
 
+                        val inspectFlags = PackageManager.GET_PERMISSIONS or
+                            PackageManager.GET_ACTIVITIES or
+                            PackageManager.GET_SERVICES or
+                            PackageManager.GET_RECEIVERS or
+                            PackageManager.GET_PROVIDERS
+
                         val packageInfo = context.packageManager.getPackageArchiveInfo(
                             apkFile.absolutePath,
-                            0
+                            inspectFlags
                         ) ?: error("This file is not a readable Android APK.")
 
                         val version = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -103,7 +109,39 @@ private fun XhubReaDashboard() {
                         val targetSdk = packageInfo.applicationInfo?.targetSdkVersion?.toString()
                             ?: "Unknown"
 
-                        "APK metadata (read-only)\nPackage: ${packageInfo.packageName}\nVersion name: ${packageInfo.versionName ?: "Unknown"}\nVersion code: $version\nMinimum SDK: $minSdk\nTarget SDK: $targetSdk"
+                        val permissionList = packageInfo.requestedPermissions?.toList().orEmpty()
+                        val activities = packageInfo.activities?.map { it.name }.orEmpty()
+                        val services = packageInfo.services?.map { it.name }.orEmpty()
+                        val receivers = packageInfo.receivers?.map { it.name }.orEmpty()
+                        val providers = packageInfo.providers?.map { it.name }.orEmpty()
+
+                        buildString {
+                            appendLine("APK metadata (read-only)")
+                            appendLine("Package: ${packageInfo.packageName}")
+                            appendLine("Version name: ${packageInfo.versionName ?: "Unknown"}")
+                            appendLine("Version code: $version")
+                            appendLine("Minimum SDK: $minSdk")
+                            appendLine("Target SDK: $targetSdk")
+                            appendLine()
+                            appendLine("Declared permissions (${permissionList.size})")
+                            appendLine(permissionList.take(30).joinToString("\n").ifBlank { "None declared" })
+                            appendLine()
+                            appendLine("Activities (${activities.size})")
+                            appendLine(activities.take(20).joinToString("\n").ifBlank { "None found" })
+                            appendLine()
+                            appendLine("Services (${services.size})")
+                            appendLine(services.take(20).joinToString("\n").ifBlank { "None found" })
+                            appendLine()
+                            appendLine("Receivers (${receivers.size})")
+                            appendLine(receivers.take(20).joinToString("\n").ifBlank { "None found" })
+                            appendLine()
+                            appendLine("Providers (${providers.size})")
+                            appendLine(providers.take(20).joinToString("\n").ifBlank { "None found" })
+                            if (permissionList.size > 30) {
+                                appendLine()
+                                appendLine("Only the first 30 permissions are displayed.")
+                            }
+                        }
                     }.getOrElse { error ->
                         "Could not inspect this file: ${error.message ?: "Unknown error"}"
                     }
