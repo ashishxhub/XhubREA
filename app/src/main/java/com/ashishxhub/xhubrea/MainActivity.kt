@@ -77,6 +77,7 @@ private fun XhubReaDashboard() {
     var dexReport by remember { mutableStateOf("Choose an APK, then analyze its DEX headers.") }
     var resourceReport by remember { mutableStateOf("Choose an APK, then scan its resource file inventory.") }
     var resourceTypeReport by remember { mutableStateOf("Choose an APK, then analyze file types and sizes.") }
+    var architectureReport by remember { mutableStateOf("Choose an APK, then inspect its high-level package layout.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -386,6 +387,28 @@ private fun XhubReaDashboard() {
             }
             InfoCard(title = "Resource Type Analyzer (read-only)", body = resourceTypeReport)
             Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
+                        architectureReport = "Inspect a readable APK first."
+                    } else {
+                        architectureReport = "Inspecting APK package layout…"
+                        scope.launch {
+                            architectureReport = withContext(Dispatchers.IO) {
+                                runCatching { inspectApkArchitecture(apkFile) }
+                                    .getOrElse { error -> "Could not inspect package layout: ${error.message ?: "Unknown error"}" }
+                            }
+                            status = "APK architecture overview finished. No files were extracted or executed."
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Explore APK architecture")
+            }
+            InfoCard(title = "APK Architecture Explorer (read-only)", body = architectureReport)
+            Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
             Text("APK App Information Dashboard", style = MaterialTheme.typography.titleLarge)
@@ -490,6 +513,57 @@ private fun XhubReaDashboard() {
     }
 }
 
+
+private fun inspectApkArchitecture(apkFile: File): String {
+    return ZipFile(apkFile).use { zip ->
+        val entries = zip.entries().asSequence()
+            .filter { !it.isDirectory }
+            .toList()
+        val paths = entries.map { it.name }
+
+        val topLevel = entries.groupBy { path ->
+            path.substringBefore('/', missingDelimiterValue = "[root files]")
+        }.mapValues { it.value.size }.toSortedMap()
+
+        val importantFiles = listOf(
+            "AndroidManifest.xml",
+            "resources.arsc",
+            "classes.dex"
+        )
+
+        val dexFiles = paths.filter { Regex("""classes(\d*)\.dex""").matches(it) }.sorted()
+        val hasSigningMetadata = paths.any { path ->
+            path.startsWith("META-INF/") &&
+                (path.endsWith(".RSA", true) || path.endsWith(".DSA", true) ||
+                    path.endsWith(".EC", true) || path.endsWith(".SF", true))
+        }
+
+        buildString {
+            appendLine("APK Architecture Overview — ZIP metadata only")
+            appendLine("Total entries: ${entries.size}")
+            appendLine()
+            appendLine("Important package entries")
+            importantFiles.forEach { name ->
+                val present = if (name == "classes.dex") dexFiles.isNotEmpty() else name in paths
+                appendLine("$name: ${if (present) "Present" else "Not found"}")
+            }
+            appendLine("DEX files found: ${dexFiles.size}")
+            appendLine("Signing-related metadata files: ${if (hasSigningMetadata) "Present" else "Not found"}")
+            appendLine("Note: presence of signing metadata does not verify APK signature validity.")
+            appendLine()
+            appendLine("Top-level package layout (folder | file count)")
+            topLevel.forEach { (folder, count) -> appendLine("$folder | $count") }
+            appendLine()
+            appendLine("Common APK areas")
+            appendLine("res/: Android resources")
+            appendLine("assets/: bundled app assets")
+            appendLine("lib/: native libraries")
+            appendLine("META-INF/: package metadata and possible signing-related files")
+            appendLine()
+            append("This is a structural overview only; file contents were not extracted or executed.")
+        }
+    }
+}
 
 private fun analyzeApkFileTypes(apkFile: File): String {
     return ZipFile(apkFile).use { zip ->
