@@ -152,6 +152,22 @@ private fun XhubReaDashboard() {
         }
     }
 
+    val reportSaver = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { output ->
+                    output.write(apkReport.toByteArray(Charsets.UTF_8))
+                } ?: error("Could not create the report file.")
+            }.onSuccess {
+                status = "Report saved successfully."
+            }.onFailure { error ->
+                status = "Could not save report: ${error.message ?: "Unknown error"}"
+            }
+        }
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(20.dp),
@@ -241,6 +257,19 @@ private fun XhubReaDashboard() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Export / Share APK report")
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = {
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect")) {
+                        status = "Inspect a readable APK before saving its report."
+                    } else {
+                        reportSaver.launch("XhubREA_APK_Report.txt")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save report as TXT file")
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text("App Components Explorer", style = MaterialTheme.typography.titleLarge)
