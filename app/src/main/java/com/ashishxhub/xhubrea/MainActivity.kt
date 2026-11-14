@@ -96,6 +96,17 @@ private fun XhubReaDashboard() {
                             inspectFlags
                         ) ?: error("This file is not a readable Android APK.")
 
+                        packageInfo.applicationInfo?.let { appInfo ->
+                            appInfo.sourceDir = apkFile.absolutePath
+                            appInfo.publicSourceDir = apkFile.absolutePath
+                        }
+                        val appLabel = packageInfo.applicationInfo?.loadLabel(context.packageManager)
+                            ?.toString()?.takeIf { it.isNotBlank() } ?: "Unknown"
+                        val apkSize = android.text.format.Formatter.formatShortFileSize(
+                            context,
+                            apkFile.length()
+                        )
+
                         val version = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                             packageInfo.longVersionCode
                         } else {
@@ -130,6 +141,8 @@ private fun XhubReaDashboard() {
 
                         buildString {
                             appendLine("APK metadata (read-only)")
+                            appendLine("App name: $appLabel")
+                            appendLine("APK file size: $apkSize")
                             appendLine("Package: ${packageInfo.packageName}")
                             appendLine("Version name: ${packageInfo.versionName ?: "Unknown"}")
                             appendLine("Version code: $version")
@@ -255,6 +268,11 @@ private fun XhubReaDashboard() {
             Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
+            Text("APK App Information Dashboard", style = MaterialTheme.typography.titleLarge)
+            InfoCard(title = "App identity", body = reportSection(apkReport, "App name:"))
+            InfoCard(title = "Package and version", body = reportSection(apkReport, "Package:"))
+            InfoCard(title = "File size", body = reportSection(apkReport, "APK file size:"))
+            InfoCard(title = "Android compatibility", body = reportSection(apkReport, "Minimum SDK:"))
             Button(
                 onClick = {
                     if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect")) {
