@@ -388,6 +388,61 @@ private fun XhubReaDashboard() {
                 onClick = {
                     val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
                     if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
+                        status = "Choose and inspect an APK before running the complete analysis."
+                    } else {
+                        status = "Running complete analysis suite…"
+                        scope.launch {
+                            val results = withContext(Dispatchers.IO) {
+                                listOf(
+                                    runCatching { inspectDexHeaders(apkFile) }
+                                        .getOrElse { "DEX analysis failed: ${it.message ?: "Unknown error"}" },
+                                    runCatching { inventoryApkResources(apkFile) }
+                                        .getOrElse { "Resource inventory failed: ${it.message ?: "Unknown error"}" },
+                                    runCatching { analyzeApkFileTypes(apkFile) }
+                                        .getOrElse { "Resource type analysis failed: ${it.message ?: "Unknown error"}" },
+                                    runCatching { inspectApkArchitecture(apkFile) }
+                                        .getOrElse { "Architecture analysis failed: ${it.message ?: "Unknown error"}" },
+                                    runCatching { summarizeManifest(apkReport) }
+                                        .getOrElse { "Manifest summary failed: ${it.message ?: "Unknown error"}" },
+                                    runCatching { reviewExportedComponents(apkReport) }
+                                        .getOrElse { "Component review failed: ${it.message ?: "Unknown error"}" },
+                                    runCatching { detectAppGameTechnology(apkFile) }
+                                        .getOrElse { "Technology detection failed: ${it.message ?: "Unknown error"}" },
+                                    runCatching { analyzeNativeLibraries(apkFile) }
+                                        .getOrElse { "Native library analysis failed: ${it.message ?: "Unknown error"}" },
+                                    runCatching { analyzeApkSigningCertificates(context, apkFile) }
+                                        .getOrElse { "Certificate inspection failed: ${it.message ?: "Unknown error"}" },
+                                    runCatching { ResearchLab.run(apkFile) }
+                                        .getOrElse { "Research Lab failed: ${it.message ?: "Unknown error"}" }
+                                )
+                            }
+                            dexReport = results[0]
+                            resourceReport = results[1]
+                            resourceTypeReport = results[2]
+                            architectureReport = results[3]
+                            manifestReport = results[4]
+                            exposureReport = results[5]
+                            engineReport = results[6]
+                            nativeLibraryReport = results[7]
+                            signingCertificateReport = results[8]
+                            fullResearchReport = results[9]
+                            status = "Complete analysis finished. Review each module and its limitations below."
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Run Complete Analysis — All Modules")
+            }
+            Text(
+                "Runs the available read-only analysis modules in sequence after an APK is selected. Individual module buttons remain available.",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
                         dexReport = "Inspect a readable APK first."
                     } else {
                         dexReport = "Reading DEX headers…"
