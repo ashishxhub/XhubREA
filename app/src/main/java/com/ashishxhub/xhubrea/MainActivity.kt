@@ -584,9 +584,21 @@ private fun reportSection(report: String, heading: String): String {
     if (report == "No APK inspected yet." || report.startsWith("Could not inspect")) {
         return "Choose a readable APK to view this section."
     }
+
     val lines = report.lines()
+
+    // Metadata cards use labels such as "App name:" followed by a value
+    // on the same line. Return that value instead of looking for a section.
+    val metadataLine = lines.firstOrNull { it.startsWith(heading) }
+    if (metadataLine != null && heading.endsWith(":")) {
+        return metadataLine.substringAfter(heading).trim().ifBlank { "Not available." }
+    }
+
+    // List sections use headings such as "Activities (3)" and have
+    // their entries on the following lines.
     val headerIndex = lines.indexOfFirst { it.startsWith("$heading (") }
     if (headerIndex < 0) return "Section not available."
+
     val content = lines.drop(headerIndex + 1).takeWhile { it.isNotBlank() }
     return content.joinToString("\n").ifBlank { "No entries found." }
 }
