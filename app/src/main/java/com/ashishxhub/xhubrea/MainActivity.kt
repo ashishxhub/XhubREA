@@ -625,14 +625,19 @@ private fun detectAppGameTechnology(apkFile: File): String {
 
 private fun inspectApkArchitecture(apkFile: File): String {
     return ZipFile(apkFile).use { zip ->
-        val entries = zip.entries().asSequence()
-            .filter { !it.isDirectory }
+        val entries: List<ZipEntry> = zip.entries().asSequence()
+            .filter { entry: ZipEntry -> !entry.isDirectory }
             .toList()
-        val paths = entries.map { it.name }
+        val paths: List<String> = entries.map { entry: ZipEntry -> entry.name }
 
-        val topLevel = entries.groupBy { entry ->
-            entry.name.substringBefore('/', missingDelimiterValue = "[root files]")
-        }.mapValues { groupedEntries -> groupedEntries.size }.toSortedMap()
+        val topLevel: Map<String, Int> = entries
+            .groupBy(
+                keySelector = { entry: ZipEntry ->
+                    entry.name.substringBefore('/', missingDelimiterValue = "[root files]")
+                }
+            )
+            .mapValues { item: Map.Entry<String, List<ZipEntry>> -> item.value.size }
+            .toSortedMap()
 
         val importantFiles = listOf(
             "AndroidManifest.xml",
