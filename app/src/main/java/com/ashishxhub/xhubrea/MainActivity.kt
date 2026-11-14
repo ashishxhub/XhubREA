@@ -247,7 +247,7 @@ private fun XhubReaDashboard() {
         if (uri != null) {
             runCatching {
                 context.contentResolver.openOutputStream(uri)?.use { output ->
-                    output.write(apkReport.toByteArray(Charsets.UTF_8))
+                    output.write(buildCombinedResearchReport(apkReport, comparisonReport, dexReport, resourceReport, resourceTypeReport, architectureReport, manifestReport, exposureReport, engineReport, nativeLibraryReport, signingCertificateReport, fullResearchReport).toByteArray(Charsets.UTF_8))
                 } ?: error("Could not create the report file.")
             }.onSuccess {
                 status = "Report saved successfully."
@@ -546,7 +546,7 @@ private fun XhubReaDashboard() {
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_SUBJECT, "XhubREA APK metadata report")
-                            putExtra(Intent.EXTRA_TEXT, apkReport)
+                            putExtra(Intent.EXTRA_TEXT, buildCombinedResearchReport(apkReport, comparisonReport, dexReport, resourceReport, resourceTypeReport, architectureReport, manifestReport, exposureReport, engineReport, nativeLibraryReport, signingCertificateReport, fullResearchReport))
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Share APK report"))
                         status = "APK report is ready to share."
@@ -1216,5 +1216,15 @@ private fun InfoCard(title: String, body: String) {
             Spacer(modifier = Modifier.height(6.dp))
             Text(body, style = MaterialTheme.typography.bodyMedium)
         }
+    }
+}
+
+private fun buildCombinedResearchReport(vararg sections: String): String = buildString {
+    appendLine("XhubREA — Combined Research Report")
+    appendLine("Generated locally from read-only APK inspection results.")
+    sections.forEachIndexed { index, section ->
+        appendLine()
+        appendLine("========== SECTION ${index + 1} ==========")
+        appendLine(section.ifBlank { "Not run yet." })
     }
 }
