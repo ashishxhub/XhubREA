@@ -83,6 +83,7 @@ private fun XhubReaDashboard() {
     var engineReport by remember { mutableStateOf("Choose an APK, then detect likely app/game technology.") }
     var nativeLibraryReport by remember { mutableStateOf("Choose an APK, then analyze native library ABIs and file sizes.") }
     var signingCertificateReport by remember { mutableStateOf("Choose an APK, then inspect its signing certificate metadata.") }
+    var fullResearchReport by remember { mutableStateOf("Choose an APK, then run the full research scan.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -508,7 +509,27 @@ private fun XhubReaDashboard() {
             }
             InfoCard(title = "APK Signing Certificate Inspector (metadata)", body = signingCertificateReport)
             Spacer(modifier = Modifier.height(8.dp))
-            InfoCard(title = "APK report", body = apkReport)
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
+                        fullResearchReport = "Inspect a readable APK first."
+                    } else {
+                        fullResearchReport = "Running bounded read-only research scan…"
+                        scope.launch {
+                            fullResearchReport = withContext(Dispatchers.IO) {
+                                ResearchLab.run(apkFile)
+                            }
+                            status = "Full research scan finished. Review the limitations in the report."
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Run Full Research Lab")
+            }
+            InfoCard(title = "Full Research Lab — code, UI, resources, game, API hints & test checks", body = fullResearchReport)
+                        InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
             Text("APK App Information Dashboard", style = MaterialTheme.typography.titleLarge)
             InfoCard(title = "App identity", body = reportSection(apkReport, "App name:"))
