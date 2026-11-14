@@ -41,6 +41,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.util.zip.ZipFile
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,6 +74,7 @@ private fun XhubReaDashboard() {
     var apkReport by remember { mutableStateOf("No APK inspected yet.") }
     var comparisonReport by remember { mutableStateOf("Select a second APK to compare.") }
     var secondApkReport by remember { mutableStateOf("") }
+    var dexReport by remember { mutableStateOf("Choose an APK, then analyze its DEX headers.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -314,6 +318,28 @@ private fun XhubReaDashboard() {
                 Text("Choose APK file")
             }
             Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
+                        dexReport = "Inspect a readable APK first."
+                    } else {
+                        dexReport = "Reading DEX headers…"
+                        scope.launch {
+                            dexReport = withContext(Dispatchers.IO) {
+                                runCatching { inspectDexHeaders(apkFile) }
+                                    .getOrElse { error -> "Could not read DEX information: ${error.message ?: "Unknown error"}" }
+                            }
+                            status = "DEX header analysis finished."
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Analyze DEX file information")
+            }
+            InfoCard(title = "DEX File Information Explorer", body = dexReport)
+            Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
             Text("APK App Information Dashboard", style = MaterialTheme.typography.titleLarge)
@@ -418,6 +444,49 @@ private fun XhubReaDashboard() {
     }
 }
 
+
+private fun inspectDexHeaders(apkFile: File): String {
+    val dexEntries = ZipFile(apkFile).use { zip ->
+        val entries = zip.entries().asSequence()
+            .filter { !it.isDirectory && Regex("""classes(\\d*)\\.dex""").matches(it.name) }
+            .sortedBy { it.name }
+            .toList()
+
+        if (entries.isEmpty()) {
+            return "No DEX files were found in this APK."
+        }
+
+        entries.joinToString("\\n\\n") { entry ->
+            val header = ByteArray(112)
+            zip.getInputStream(entry).use { input ->
+                java.io.DataInputStream(input).readFully(header)
+            }
+            val magic = header.copyOfRange(0, 8).toString(Charsets.US_ASCII)
+                .replace("\\u0000", "\\0")
+            if (!magic.startsWith("dex\\n")) {
+                return@joinToString "${entry.name}\\nInvalid or unrecognized DEX header."
+            }
+
+            val data = ByteBuffer.wrap(header).order(ByteOrder.LITTLE_ENDIAN)
+            fun uint(offset: Int): Long = data.getInt(offset).toLong() and 0xffffffffL
+
+            buildString {
+                appendLine("File: ${entry.name}")
+                appendLine("DEX magic: ${magic.replace("\\0", " [NUL]")}")
+                appendLine("ZIP entry size: ${entry.size} bytes")
+                appendLine("Header file size: ${uint(32)} bytes")
+                appendLine("Header size: ${uint(36)} bytes")
+                appendLine("Endian tag: 0x${uint(40).toString(16)}")
+                appendLine("String IDs: ${uint(56)}")
+                appendLine("Type IDs: ${uint(64)}")
+                appendLine("Method IDs: ${uint(88)}")
+                appendLine("Class definitions: ${uint(96)}")
+                append("Header inspection: read-only")
+            }
+        }
+    }
+    return dexEntries
+}
 
 private fun inspectApkForComparison(
     context: android.content.Context,
