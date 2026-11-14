@@ -454,8 +454,7 @@ private fun XhubReaDashboard() {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
-            ) {
+                modifier = Modifier.fillMaxWidth(),
                 enabled = !isCompleteAnalysisRunning
             ) {
                 Text(if (isCompleteAnalysisRunning) "Analysis Running…" else "Run Complete Analysis — All Modules")
