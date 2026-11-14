@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,6 +30,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.Shapes
@@ -38,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +59,15 @@ import java.util.zip.ZipFile
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Ask Android for the fastest refresh mode available on this display.
+        // The OS may still choose a lower rate to save battery or for thermal reasons.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val supportedModes = windowManager.defaultDisplay.supportedModes
+            val fastestRefreshRate = supportedModes.maxOfOrNull { it.refreshRate } ?: 60f
+            window.attributes = window.attributes.apply {
+                preferredRefreshRate = fastestRefreshRate
+            }
+        }
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(
@@ -114,6 +128,12 @@ private fun XhubReaDashboard() {
     var fullResearchReport by remember { mutableStateOf("Choose an APK, then run the full research scan.") }
     var fullAnalysisSummary by remember { mutableStateOf("Run Complete Analysis to see each module result here.") }
     var isCompleteAnalysisRunning by remember { mutableStateOf(false) }
+
+    var showSettings by remember { mutableStateOf(false) }
+    var simpleExplain by remember { mutableStateOf(preferences.getBoolean("simple_explain", true)) }
+    var showHints by remember { mutableStateOf(preferences.getBoolean("show_hints", true)) }
+    var smoothMotion by remember { mutableStateOf(preferences.getBoolean("smooth_motion", true)) }
+    var requestHighRefresh by remember { mutableStateOf(preferences.getBoolean("high_refresh", true)) }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -334,6 +354,81 @@ private fun XhubReaDashboard() {
                     Spacer(modifier = Modifier.height(5.dp))
                     Text(status, style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(onClick = { showSettings = false }, modifier = Modifier.weight(1f)) {
+                    Text("⌂ Home")
+                }
+                Button(onClick = { showSettings = true }, modifier = Modifier.weight(1f)) {
+                    Text("⚙ Settings")
+                }
+            }
+        }
+        if (showSettings) {
+            item {
+                SectionHeading("Settings", "App ko apne hisaab se set karein.")
+                PreferenceRow("Simple explanation", "Technical baat ko chhote, aasaan steps mein samjhao.", simpleExplain) {
+                    simpleExplain = it
+                    preferences.edit().putBoolean("simple_explain", it).apply()
+                }
+                PreferenceRow("Hints & clues", "Har result ke saath next clue aur kya check karein dikhaye.", showHints) {
+                    showHints = it
+                    preferences.edit().putBoolean("show_hints", it).apply()
+                }
+                PreferenceRow("Smooth motion", "Cards aur sections ke expand/collapse par smooth animation.", smoothMotion) {
+                    smoothMotion = it
+                    preferences.edit().putBoolean("smooth_motion", it).apply()
+                }
+                PreferenceRow("High refresh preference", "Device support kare to highest refresh rate request kare. Battery/heat ke kaaran Android ise badal sakta hai.", requestHighRefresh) {
+                    requestHighRefresh = it
+                    preferences.edit().putBoolean("high_refresh", it).apply()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        val rate = if (it) windowManager.defaultDisplay.supportedModes.maxOfOrNull { mode -> mode.refreshRate } ?: 60f else 60f
+                        window.attributes = window.attributes.apply { preferredRefreshRate = rate }
+                    }
+                }
+                InfoCard(
+                    "Refresh-rate note",
+                    "120 Hz ka matlab screen ek second mein 120 baar tak update ho sakti hai. XhubREA highest supported mode request karta hai, lekin final choice phone, battery saver, heat aur Android ke control mein hoti hai. Isliye 120 Hz har phone par guarantee nahi hai."
+                )
+            }
+        } else {
+            item {
+                SectionHeading("Understand it like a beginner", "XhubREA report ko simple story ki tarah padhein.")
+                Card(
+                    modifier = Modifier.fillMaxWidth().then(
+                        if (smoothMotion) Modifier.animateContentSize(animationSpec = tween(280)) else Modifier
+                    ),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("🧩 App ko samajhne ka simple map", fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            if (simpleExplain)
+                                "APK select karo → XhubREA uske package ka safe, read-only data padhta hai → files aur components ko group karta hai → clues nikalta hai → report banata hai. App ko install ya run nahi karta."
+                            else
+                                "Select APK → parse package metadata and bounded ZIP/DEX metadata → classify components/resources → generate heuristic observations and a local report.",
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (showHints) {
+                            Spacer(Modifier.height(10.dp))
+                            HorizontalDivider()
+                            Spacer(Modifier.height(8.dp))
+                            Text("💡 Clue: DEX = app ka compiled code container. res/ = screen ke text, icons aur layouts ke resources. lib/ = native machine-code libraries. Manifest = app ki basic declaration sheet.",
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.height(6.dp))
+                            Text("🔎 Kaise samjhein: pehle 'kya mila' dekho, phir 'iska matlab' padho, phir 'kyun important hai' aur 'kya confirm nahi hua' check karo.",
+                                color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
                 }
             }
         }
@@ -1380,6 +1475,32 @@ private fun reportSection(report: String, heading: String): String {
 
     val content = lines.drop(headerIndex + 1).takeWhile { it.isNotBlank() }
     return content.joinToString("\n").ifBlank { "No entries found." }
+}
+
+@Composable
+private fun PreferenceRow(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(3.dp))
+                Text(description, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
+    }
 }
 
 @Composable
