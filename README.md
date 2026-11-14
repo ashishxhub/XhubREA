@@ -9,6 +9,27 @@
 - Initial sections for app overview, feature mapping and original implementation planning.
 - GitHub Actions workflow that builds a debug APK and uploads it as an artifact.
 
+## Implemented research workspace
+
+The current Android MVP includes:
+- Local project notes saved on the device.
+- Read-only APK selection and package metadata (name, package, version, SDK, flags and declared permissions).
+- Component inventory for activities, services, receivers and providers.
+- Exported-component review based on manifest metadata.
+- DEX header/table structure inspection (counts and bounds; not a decompiler).
+- APK resource/file inventory, file-type summary and package-layout overview.
+- Heuristic framework/game-engine fingerprints and native-library ABI inventory.
+- APK signer certificate metadata (not a complete signature-verification service).
+- Basic two-APK metadata comparison.
+- Full Research Lab report: DEX presence, UI/resource filename inventory, engine hints, native library inventory, hostname-only network hints, archive size checks and original-project planning notes.
+- Combined report sharing and TXT export.
+
+All inspection is static and read-only. The app does not install or execute the selected APK.
+
+## Important feature boundaries
+
+This is an early research MVP, not a complete commercial reverse-engineering suite. It does not currently provide instruction-level DEX decompilation, decoded binary Android XML, live runtime tracing, packet capture, API request replay, automatic screen capture, AI-cloud analysis, or a verified generated app build. Some APKs use obfuscation, split packages, dynamic code or formats that this MVP cannot interpret. Reports must be treated as clues, not proof. Test the app on-device with APKs you own or are authorized to inspect.
+
 ## Build the APK on GitHub
 
 1. Open the **Actions** tab in this repository.
