@@ -564,7 +564,8 @@ private fun XhubReaDashboard() {
             }
             InfoCard(title = "Comparison results", body = comparisonReport)
             Spacer(modifier = Modifier.height(12.dp))
-            Text("App Components Explorer", style = MaterialTheme.typography.titleLarge)            Text(
+            Text("App Components Explorer", style = MaterialTheme.typography.titleLarge)
+            Text(
                 "Component lists are read from the selected APK manifest. They are metadata only and are not launched.",
                 style = MaterialTheme.typography.bodySmall
             )
