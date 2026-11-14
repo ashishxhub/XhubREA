@@ -82,6 +82,7 @@ private fun XhubReaDashboard() {
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
     var engineReport by remember { mutableStateOf("Choose an APK, then detect likely app/game technology.") }
     var nativeLibraryReport by remember { mutableStateOf("Choose an APK, then analyze native library ABIs and file sizes.") }
+    var signingCertificateReport by remember { mutableStateOf("Choose an APK, then inspect its signing certificate metadata.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -483,6 +484,29 @@ private fun XhubReaDashboard() {
                 Text("Analyze native libraries")
             }
             InfoCard(title = "Native Library & ABI Analyzer (read-only)", body = nativeLibraryReport)
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
+                        signingCertificateReport = "Inspect a readable APK first."
+                    } else {
+                        signingCertificateReport = "Reading APK signer certificate metadata…"
+                        scope.launch {
+                            signingCertificateReport = withContext(Dispatchers.IO) {
+                                runCatching { analyzeApkSigningCertificates(context, apkFile) }
+                                    .getOrElse { error -> "Signing certificate inspection failed: ${error.message ?: "Unknown error"}" }
+                            }
+                            status = "APK signing certificate metadata inspection finished. This is not a full signature validation."
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Inspect APK signing certificates")
+            }
+            InfoCard(title = "APK Signing Certificate Inspector (metadata)", body = signingCertificateReport)
             Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
@@ -644,6 +668,100 @@ private fun detectAppGameTechnology(apkFile: File): String {
     }
 }
 
+
+private fun analyzeApkSigningCertificates(
+    context: android.content.Context,
+    apkFile: File
+): String {
+    val packageManager = context.packageManager
+    val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        PackageManager.GET_SIGNING_CERTIFICATES
+    } else {
+        @Suppress("DEPRECATION")
+        PackageManager.GET_SIGNATURES
+    }
+    val packageInfo = packageManager.getPackageArchiveInfo(apkFile.absolutePath, flags)
+        ?: error("Android could not read package information from this APK.")
+
+    val currentSigners: List<android.content.pm.Signature>
+    val certificateHistory: List<android.content.pm.Signature>
+    var multipleSigners = false
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        val signingInfo = packageInfo.signingInfo
+        if (signingInfo == null) {
+            currentSigners = emptyList()
+            certificateHistory = emptyList()
+        } else {
+            multipleSigners = signingInfo.hasMultipleSigners()
+            currentSigners = signingInfo.apkContentsSigners?.toList().orEmpty()
+            certificateHistory = if (multipleSigners) {
+                currentSigners
+            } else {
+                signingInfo.signingCertificateHistory?.toList().orEmpty()
+            }
+        }
+    } else {
+        @Suppress("DEPRECATION")
+        val legacySigners = packageInfo.signatures?.toList().orEmpty()
+        currentSigners = legacySigners
+        certificateHistory = legacySigners
+    }
+
+    fun describeCertificate(signature: android.content.pm.Signature, index: Int): String {
+        val encoded = signature.toByteArray()
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(encoded)
+            .joinToString("") { byte -> "%02X".format(byte) }
+        val certificate = runCatching {
+            java.security.cert.CertificateFactory.getInstance("X.509")
+                .generateCertificate(encoded.inputStream()) as java.security.cert.X509Certificate
+        }.getOrNull()
+
+        return buildString {
+            appendLine("Certificate #$index")
+            appendLine("Certificate SHA-256: $digest")
+            appendLine("Certificate bytes: ${encoded.size}")
+            if (certificate == null) {
+                append("X.509 details: unavailable; certificate bytes and fingerprint are shown.")
+            } else {
+                appendLine("Subject: ${certificate.subjectX500Principal.name}")
+                appendLine("Issuer: ${certificate.issuerX500Principal.name}")
+                appendLine("Serial number: ${certificate.serialNumber.toString(16)}")
+                appendLine("Valid from: ${certificate.notBefore}")
+                append("Valid until: ${certificate.notAfter}")
+            }
+        }
+    }
+
+    return buildString {
+        appendLine("APK Signing Certificate Metadata — read-only")
+        appendLine("Package: ${packageInfo.packageName}")
+        appendLine("Current signer certificates: ${currentSigners.size}")
+        appendLine("Multiple current signers: $multipleSigners")
+        appendLine("Certificates in signing history: ${certificateHistory.size}")
+        appendLine()
+        appendLine("Current signer details")
+        if (currentSigners.isEmpty()) {
+            appendLine("No signer certificate metadata was returned by Android.")
+        } else {
+            currentSigners.forEachIndexed { index, signature ->
+                appendLine(describeCertificate(signature, index + 1))
+                appendLine()
+            }
+        }
+        if (certificateHistory.isNotEmpty() && certificateHistory != currentSigners) {
+            appendLine("Signing certificate history (may include previous signing certificates)")
+            certificateHistory.forEachIndexed { index, signature ->
+                appendLine(describeCertificate(signature, index + 1))
+                appendLine()
+            }
+        }
+        appendLine("Important limitations")
+        appendLine("These are signer certificate details reported by Android's package parser. A certificate fingerprint identifies certificate bytes; it does not by itself prove the publisher is trustworthy.")
+        append("This screen does not independently verify every APK signature scheme, compare against an official publisher fingerprint, or guarantee the APK is safe.")
+    }
+}
 
 private fun analyzeNativeLibraries(apkFile: File): String {
     return ZipFile(apkFile).use { zip ->
