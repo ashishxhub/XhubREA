@@ -951,47 +951,7 @@ private fun inventoryApkResources(apkFile: File): String {
     }
 }
 
-private fun inspectDexHeaders(apkFile: File): String {
-    return ZipFile(apkFile).use { zip ->
-        val entries = zip.entries().asSequence()
-            .filter { !it.isDirectory && Regex("""classes(\d*)\.dex""").matches(it.name) }
-            .sortedBy { it.name }
-            .toList()
-
-        if (entries.isEmpty()) {
-            return@use "No DEX files were found in this APK."
-        }
-
-        entries.joinToString("\n\n") { entry ->
-            val header = ByteArray(112)
-            zip.getInputStream(entry).use { input ->                java.io.DataInputStream(input).readFully(header)
-            }
-            val magic = header.copyOfRange(0, 8).toString(Charsets.US_ASCII)
-                .replace("\u0000", "")
-            if (!magic.startsWith("dex\n")) {
-                return@joinToString "${entry.name}\nInvalid or unrecognized DEX header."
-            }
-
-            val data = ByteBuffer.wrap(header).order(ByteOrder.LITTLE_ENDIAN)
-            fun uint(offset: Int): Long = data.getInt(offset).toLong() and 0xffffffffL
-
-            buildString {
-                appendLine("File: ${entry.name}")
-                appendLine("DEX magic: $magic")
-                appendLine("ZIP entry size: ${entry.size} bytes")
-                appendLine("Header file size: ${uint(32)} bytes")
-                appendLine("Header size: ${uint(36)} bytes")
-                appendLine("Endian tag: 0x${uint(40).toString(16)}")
-                appendLine("String IDs: ${uint(56)}")
-                appendLine("Type IDs: ${uint(64)}")
-                appendLine("Method IDs: ${uint(88)}")
-                appendLine("Class definitions: ${uint(96)}")
-                append("Header inspection: read-only")
-            }
-        }
-    }
-}
-
+private fun inspectDexHeaders(apkFile: File): String = AdvancedDexAnalyzer.inspect(apkFile)
 private fun inspectApkForComparison(
     context: android.content.Context,
     uri: android.net.Uri
