@@ -22,7 +22,7 @@ internal object ResearchLab {
 
             val paths = entries.map { it.name }
             val lower = paths.map { it.lowercase(Locale.ROOT) }
-            val dexEntries = entries.filter { Regex("""classes(\\d*)\\.dex""").matches(it.name) }
+            val dexEntries = entries.filter { Regex("""classes(\d*)\.dex""").matches(it.name) }
             val resourceEntries = paths.filter {
                 it.startsWith("res/") || it.startsWith("assets/") ||
                     it == "resources.arsc" || it.endsWith(".xml")
@@ -106,7 +106,7 @@ internal object ResearchLab {
                 appendLine("6) ARCHIVE / TESTING CHECKS")
                 appendLine("Empty files: ${entries.count { it.size == 0L }}")
                 appendLine("Largest entries:")
-                largest.joinToString("\n") { " • ${it.name} — ${it.size} bytes" }.also(::appendLine)
+                appendLine(largest.joinToString("\n") { " • ${it.name} — ${it.size} bytes" })
                 appendLine("ZIP archive opened successfully: YES")
                 appendLine("APK installation / runtime behavior tested: NO")
                 appendLine()
