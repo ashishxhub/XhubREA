@@ -108,6 +108,7 @@ private fun XhubReaDashboard() {
     var nativeLibraryReport by remember { mutableStateOf("Choose an APK, then analyze native library ABIs and file sizes.") }
     var signingCertificateReport by remember { mutableStateOf("Choose an APK, then inspect its signing certificate metadata.") }
     var fullResearchReport by remember { mutableStateOf("Choose an APK, then run the full research scan.") }
+    var fullAnalysisSummary by remember { mutableStateOf("Run Complete Analysis to see each module result here.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -426,6 +427,26 @@ private fun XhubReaDashboard() {
                             nativeLibraryReport = results[7]
                             signingCertificateReport = results[8]
                             fullResearchReport = results[9]
+                            val moduleNames = listOf(
+                                "DEX headers", "Resource inventory", "Resource types", "APK architecture",
+                                "Manifest summary", "Exported components", "App/game technology",
+                                "Native libraries", "Signing certificate metadata", "Research Lab"
+                            )
+                            val failurePrefixes = listOf(
+                                "DEX analysis failed", "Resource inventory failed", "Resource type analysis failed",
+                                "Architecture analysis failed", "Manifest summary failed", "Component review failed",
+                                "Technology detection failed", "Native library analysis failed",
+                                "Certificate inspection failed", "Research Lab failed"
+                            )
+                            fullAnalysisSummary = buildString {
+                                appendLine("Complete analysis module results")
+                                results.forEachIndexed { index, result ->
+                                    val failed = result.startsWith(failurePrefixes[index], ignoreCase = true)
+                                    appendLine("${if (failed) "FAILED" else "COMPLETED"} — ${moduleNames[index]}")
+                                }
+                                appendLine()
+                                appendLine("A completed module may still report limited or heuristic findings. Read each detailed report before drawing conclusions.")
+                            }
                             status = "Complete analysis finished. Review each module and its limitations below."
                         }
                     }
@@ -438,6 +459,8 @@ private fun XhubReaDashboard() {
                 "Runs the available read-only analysis modules in sequence after an APK is selected. Individual module buttons remain available.",
                 style = MaterialTheme.typography.bodySmall
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            InfoCard(title = "Complete Analysis — Module Status", body = fullAnalysisSummary)
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = {
