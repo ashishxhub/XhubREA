@@ -1,8 +1,12 @@
 package com.ashishxhub.xhubrea
 
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,12 +29,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,6 +57,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun XhubReaDashboard() {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val preferences = remember {
         context.getSharedPreferences("xhubrea_project", android.content.Context.MODE_PRIVATE)
     }
@@ -55,7 +65,52 @@ private fun XhubReaDashboard() {
     var target by remember { mutableStateOf(preferences.getString("project_name", "") ?: "") }
     var notes by remember { mutableStateOf(preferences.getString("project_notes", "") ?: "") }
     var status by remember {
-        mutableStateOf("Create a project note for an app you own, an open-source app, or one you have permission to study.")
+        mutableStateOf("Create a project note for an app you own, an open-source app, or an app you have permission to study.")
+    }
+    var apkReport by remember { mutableStateOf("No APK inspected yet.") }
+
+    val apkPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            status = "Reading APK metadata…"
+            scope.launch {
+                apkReport = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            apkFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
+                        } ?: error("Could not open the selected file.")
+
+                        val packageInfo = context.packageManager.getPackageArchiveInfo(
+                            apkFile.absolutePath,
+                            0
+                        ) ?: error("This file is not a readable Android APK.")
+
+                        val version = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            packageInfo.longVersionCode
+                        } else {
+                            @Suppress("DEPRECATION")
+                            packageInfo.versionCode.toLong()
+                        }
+                        val minSdk = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            packageInfo.applicationInfo?.minSdkVersion?.toString() ?: "Unknown"
+                        } else {
+                            "Not available on this Android version"
+                        }
+                        val targetSdk = packageInfo.applicationInfo?.targetSdkVersion?.toString()
+                            ?: "Unknown"
+
+                        "APK metadata (read-only)\nPackage: ${packageInfo.packageName}\nVersion name: ${packageInfo.versionName ?: "Unknown"}\nVersion code: $version\nMinimum SDK: $minSdk\nTarget SDK: $targetSdk"
+                    }.getOrElse { error ->
+                        "Could not inspect this file: ${error.message ?: "Unknown error"}"
+                    }
+                }
+                status = "APK metadata inspection finished."
+            }
+        }
     }
 
     LazyColumn(
@@ -113,6 +168,24 @@ private fun XhubReaDashboard() {
             }
         }
         item {
+            Text("Authorized APK metadata viewer", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Choose an APK file to read basic package metadata. The APK is not installed or executed.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    apkPicker.launch(arrayOf("application/vnd.android.package-archive", "application/octet-stream"))
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Choose APK file")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            InfoCard(title = "APK report", body = apkReport)
+        }
+        item {
             InfoCard(
                 title = "📦 App overview",
                 body = "Record the app name, version, developer, supported Android version and source."
@@ -135,7 +208,7 @@ private fun XhubReaDashboard() {
         }
         item {
             Text(
-                text = "Notes are stored locally on this device. Use only apps you own, open-source projects, or apps you have permission to inspect. Do not use this project to bypass security, paid access, authentication or anti-cheat systems.",
+                text = "Notes are stored locally on this device. Use only apps you own, open-source projects, or apps you have permission to inspect. This viewer reads basic APK metadata only; it does not bypass protections or execute the selected APK.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
