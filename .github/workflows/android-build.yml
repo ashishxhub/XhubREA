@@ -27,14 +27,29 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.11.1"
 
-      - name: Build debug APK
-        run: gradle --no-daemon assembleDebug
+      - name: Install Android 16 SDK
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Upload APK
+      - name: Run Android lint and unit tests
+        run: gradle --no-daemon lintDebug testDebugUnitTest
+
+      - name: Build debug APK and release bundle
+        run: gradle --no-daemon assembleDebug bundleRelease
+
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: XhubREA-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload release Android App Bundle (unsigned)
+        uses: actions/upload-artifact@v4
+        with:
+          name: XhubREA-release-aab-unsigned
+          path: app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
