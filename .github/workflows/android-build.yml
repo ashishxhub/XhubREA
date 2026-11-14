@@ -42,14 +42,14 @@ jobs:
         run: gradle --no-daemon assembleDebug bundleRelease
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: XhubREA-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
       - name: Upload release Android App Bundle (unsigned)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: XhubREA-release-aab-unsigned
           path: app/build/outputs/bundle/release/app-release.aab
