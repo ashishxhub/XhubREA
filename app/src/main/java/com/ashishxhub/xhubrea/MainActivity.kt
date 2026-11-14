@@ -106,6 +106,9 @@ private fun XhubReaDashboard() {
                             context,
                             apkFile.length()
                         )
+                        val sha256 = java.security.MessageDigest.getInstance("SHA-256")
+                            .digest(apkFile.readBytes())
+                            .joinToString("") { byte -> "%02x".format(byte) }
 
                         val version = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                             packageInfo.longVersionCode
@@ -156,6 +159,7 @@ private fun XhubReaDashboard() {
                             appendLine("APK metadata (read-only)")
                             appendLine("App name: $appLabel")
                             appendLine("APK file size: $apkSize")
+                            appendLine("SHA-256: $sha256")
                             appendLine("Package: ${packageInfo.packageName}")
                             appendLine("Version name: ${packageInfo.versionName ?: "Unknown"}")
                             appendLine("Version code: $version")
@@ -289,6 +293,7 @@ private fun XhubReaDashboard() {
             InfoCard(title = "App identity", body = reportSection(apkReport, "App name:"))
             InfoCard(title = "Package and version", body = reportSection(apkReport, "Package:"))
             InfoCard(title = "File size", body = reportSection(apkReport, "APK file size:"))
+            InfoCard(title = "APK SHA-256 fingerprint", body = reportSection(apkReport, "SHA-256:"))
             InfoCard(title = "Android compatibility", body = reportSection(apkReport, "Minimum SDK:"))
             InfoCard(title = "Application manifest flags", body = reportSection(apkReport, "Application enabled:"))
             Button(
