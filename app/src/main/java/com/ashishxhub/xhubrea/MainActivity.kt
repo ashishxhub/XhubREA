@@ -242,6 +242,17 @@ private fun XhubReaDashboard() {
             ) {
                 Text("Export / Share APK report")
             }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("App Components Explorer", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Component lists are read from the selected APK manifest. They are metadata only and are not launched.",
+                style = MaterialTheme.typography.bodySmall
+            )
+            InfoCard(title = "Activities", body = reportSection(apkReport, "Activities"))
+            InfoCard(title = "Services", body = reportSection(apkReport, "Services"))
+            InfoCard(title = "Broadcast receivers", body = reportSection(apkReport, "Receivers"))
+            InfoCard(title = "Content providers", body = reportSection(apkReport, "Providers"))
+            InfoCard(title = "Declared permissions", body = reportSection(apkReport, "Declared permissions"))
         }
         item {
             InfoCard(
@@ -272,6 +283,18 @@ private fun XhubReaDashboard() {
             )
         }
     }
+}
+
+
+private fun reportSection(report: String, heading: String): String {
+    if (report == "No APK inspected yet." || report.startsWith("Could not inspect")) {
+        return "Choose a readable APK to view this section."
+    }
+    val lines = report.lines()
+    val headerIndex = lines.indexOfFirst { it.startsWith("$heading (") }
+    if (headerIndex < 0) return "Section not available."
+    val content = lines.drop(headerIndex + 1).takeWhile { it.isNotBlank() }
+    return content.joinToString("\n").ifBlank { "No entries found." }
 }
 
 @Composable
