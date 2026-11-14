@@ -76,6 +76,7 @@ private fun XhubReaDashboard() {
     var secondApkReport by remember { mutableStateOf("") }
     var dexReport by remember { mutableStateOf("Choose an APK, then analyze its DEX headers.") }
     var resourceReport by remember { mutableStateOf("Choose an APK, then scan its resource file inventory.") }
+    var resourceTypeReport by remember { mutableStateOf("Choose an APK, then analyze file types and sizes.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -363,6 +364,28 @@ private fun XhubReaDashboard() {
             }
             InfoCard(title = "Resource & File Inventory (read-only)", body = resourceReport)
             Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
+                        resourceTypeReport = "Inspect a readable APK first."
+                    } else {
+                        resourceTypeReport = "Analyzing file types and sizes…"
+                        scope.launch {
+                            resourceTypeReport = withContext(Dispatchers.IO) {
+                                runCatching { analyzeApkFileTypes(apkFile) }
+                                    .getOrElse { error -> "Could not analyze file types: ${error.message ?: "Unknown error"}" }
+                            }
+                            status = "Resource type analysis finished. File contents were not opened."
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Analyze resource types")
+            }
+            InfoCard(title = "Resource Type Analyzer (read-only)", body = resourceTypeReport)
+            Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
             Text("APK App Information Dashboard", style = MaterialTheme.typography.titleLarge)
@@ -467,6 +490,55 @@ private fun XhubReaDashboard() {
     }
 }
 
+
+private fun analyzeApkFileTypes(apkFile: File): String {
+    return ZipFile(apkFile).use { zip ->
+        val entries = zip.entries().asSequence()
+            .filter { !it.isDirectory }
+            .toList()
+
+        fun extensionOf(path: String): String {
+            val name = path.substringAfterLast('/')
+            val dot = name.lastIndexOf('.')
+            return if (dot > 0 && dot < name.lastIndex) {
+                name.substring(dot + 1).lowercase()
+            } else {
+                "[no extension]"
+            }
+        }
+
+        val grouped = entries.groupBy { extensionOf(it.name) }
+            .mapValues { (_, files) ->
+                files.size to files.sumOf { it.size.coerceAtLeast(0L) }
+            }
+            .toList()
+            .sortedWith(compareByDescending<Pair<String, Pair<Int, Long>>> { it.second.first }.thenBy { it.first })
+
+        val largest = entries.sortedByDescending { it.size }.take(10)
+        val totalBytes = entries.sumOf { it.size.coerceAtLeast(0L) }
+
+        buildString {
+            appendLine("Resource Type Analysis — metadata only")
+            appendLine("Files analyzed: ${entries.size}")
+            appendLine("Known uncompressed-size total: $totalBytes bytes")
+            appendLine()
+            appendLine("File types (extension | count | total size)")
+            grouped.take(40).forEach { (extension, stats) ->
+                appendLine("$extension | ${stats.first} | ${stats.second} bytes")
+            }
+            if (grouped.size > 40) {
+                appendLine("Showing 40 of ${grouped.size} file types.")
+            }
+            appendLine()
+            appendLine("Largest files (up to 10)")
+            largest.forEach { entry ->
+                appendLine("${entry.name} | ${entry.size} bytes")
+            }
+            appendLine()
+            append("Only ZIP directory metadata was read; file contents were not opened or extracted.")
+        }
+    }
+}
 
 private fun inventoryApkResources(apkFile: File): String {
     return ZipFile(apkFile).use { zip ->
