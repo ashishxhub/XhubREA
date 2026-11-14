@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,9 +47,15 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun XhubReaDashboard() {
-    var target by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val preferences = remember {
+        context.getSharedPreferences("xhubrea_project", android.content.Context.MODE_PRIVATE)
+    }
+
+    var target by remember { mutableStateOf(preferences.getString("project_name", "") ?: "") }
+    var notes by remember { mutableStateOf(preferences.getString("project_notes", "") ?: "") }
     var status by remember {
-        mutableStateOf("Start by describing an app or game you are authorized to study.")
+        mutableStateOf("Create a project note for an app you own, an open-source app, or one you have permission to study.")
     }
 
     LazyColumn(
@@ -69,6 +76,7 @@ private fun XhubReaDashboard() {
             )
         }
         item {
+            Text("Project workspace", style = MaterialTheme.typography.titleLarge)
             OutlinedTextField(
                 value = target,
                 onValueChange = { target = it },
@@ -78,17 +86,30 @@ private fun XhubReaDashboard() {
                 singleLine = true
             )
             Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Project notes") },
+                placeholder = { Text("Write visible features, screens and behavior...") },
+                minLines = 4
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = {
-                    status = if (target.isBlank()) {
-                        "Please enter an app or game name first."
+                    if (target.isBlank()) {
+                        status = "Enter an app or game name before saving."
                     } else {
-                        "Project noted: $target. Next, collect its public details and document its visible features."
+                        preferences.edit()
+                            .putString("project_name", target.trim())
+                            .putString("project_notes", notes)
+                            .apply()
+                        status = "Saved on this device: ${target.trim()}"
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Start analysis")
+                Text("Save project notes")
             }
         }
         item {
@@ -114,7 +135,7 @@ private fun XhubReaDashboard() {
         }
         item {
             Text(
-                text = "Use only apps you own, open-source projects, or apps you have permission to inspect. XhubREA is for learning and authorized analysis—not bypassing security, paid access or anti-cheat systems.",
+                text = "Notes are stored locally on this device. Use only apps you own, open-source projects, or apps you have permission to inspect. Do not use this project to bypass security, paid access, authentication or anti-cheat systems.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
