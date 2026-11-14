@@ -78,6 +78,7 @@ private fun XhubReaDashboard() {
     var resourceReport by remember { mutableStateOf("Choose an APK, then scan its resource file inventory.") }
     var resourceTypeReport by remember { mutableStateOf("Choose an APK, then analyze file types and sizes.") }
     var architectureReport by remember { mutableStateOf("Choose an APK, then inspect its high-level package layout.") }
+    var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -408,6 +409,21 @@ private fun XhubReaDashboard() {
                 Text("Explore APK architecture")
             }
             InfoCard(title = "APK Architecture Explorer (read-only)", body = architectureReport)
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    manifestReport = if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect")) {
+                        "Inspect a readable APK first."
+                    } else {
+                        summarizeManifest(apkReport)
+                    }
+                    status = "Manifest summary generated from PackageManager metadata."
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Generate manifest summary")
+            }
+            InfoCard(title = "Manifest Summary Analyzer (read-only)", body = manifestReport)
             Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
@@ -784,6 +800,74 @@ private fun compareApkReports(first: String, second: String): String {
         appendLine("Permission differences")
         appendLine("Added in second APK: ${added.joinToString().ifBlank { "None" }}")
         appendLine("Not present in second APK: ${removed.joinToString().ifBlank { "None" }}")
+    }
+}
+
+private fun summarizeManifest(report: String): String {
+    if (report == "No APK inspected yet." || report.startsWith("Could not inspect")) {
+        return "Choose a readable APK first."
+    }
+
+    fun metadata(label: String): String =
+        report.lineSequence().firstOrNull { it.startsWith(label) }
+            ?.substringAfter(label)?.trim() ?: "Not available"
+
+    fun section(name: String): List<String> {
+        val lines = report.lines()
+        val index = lines.indexOfFirst { it.startsWith("$name (") }
+        if (index < 0) return emptyList()
+        return lines.drop(index + 1).takeWhile { it.isNotBlank() }
+            .filterNot { it == "None found" }
+    }
+
+    val activities = section("Activities")
+    val services = section("Services")
+    val receivers = section("Receivers")
+    val providers = section("Providers")
+    val allComponents = activities + services + receivers + providers
+    val exportedCount = allComponents.count { it.contains("exported=true", ignoreCase = true) }
+    val enabledCount = allComponents.count { it.contains("enabled=true", ignoreCase = true) }
+    val permissionHeader = report.lineSequence()
+        .firstOrNull { it.startsWith("Declared permissions (") } ?: "Declared permissions (0)"
+    val permissionCount = Regex("""\\((\\d+)\\)""").find(permissionHeader)
+        ?.groupValues?.getOrNull(1) ?: "0"
+    val permissionAnalysis = report.lineSequence()
+        .dropWhile { !it.startsWith("Permission analysis (") }
+        .drop(1)
+        .takeWhile { it.isNotBlank() }
+        .toList()
+    val categories = listOf("Normal", "Dangerous (runtime-sensitive)", "Signature (restricted)", "Other / special", "Unknown / not available")
+
+    return buildString {
+        appendLine("Manifest Summary — PackageManager metadata")
+        appendLine("App: ${metadata("App name:")}")
+        appendLine("Package: ${metadata("Package:")}")
+        appendLine("Version: ${metadata("Version name:")} (${metadata("Version code:")})")
+        appendLine("Minimum SDK: ${metadata("Minimum SDK:")}")
+        appendLine("Target SDK: ${metadata("Target SDK:")}")
+        appendLine()
+        appendLine("Application flags")
+        appendLine("Enabled: ${metadata("Application enabled:")}")
+        appendLine("Debuggable: ${metadata("Debuggable:")}")
+        appendLine("Allow backup: ${metadata("Allow backup flag:")}")
+        appendLine("Test-only: ${metadata("Test-only flag:")}")
+        appendLine()
+        appendLine("Component summary")
+        appendLine("Activities: ${activities.size}")
+        appendLine("Services: ${services.size}")
+        appendLine("Receivers: ${receivers.size}")
+        appendLine("Providers: ${providers.size}")
+        appendLine("Total listed components: ${allComponents.size}")
+        appendLine("Exported components: $exportedCount")
+        appendLine("Enabled components: $enabledCount")
+        appendLine()
+        appendLine("Declared permissions: $permissionCount")
+        categories.forEach { category ->
+            val count = permissionAnalysis.count { it.contains("— $category") }
+            appendLine("$category: $count")
+        }
+        appendLine()
+        append("This is a summary of metadata exposed by Android PackageManager, not a raw binary XML decode. Exported status alone does not establish a vulnerability.")
     }
 }
 
