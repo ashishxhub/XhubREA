@@ -625,18 +625,16 @@ private fun detectAppGameTechnology(apkFile: File): String {
 
 private fun inspectApkArchitecture(apkFile: File): String {
     return ZipFile(apkFile).use { zip ->
-        val entries: List<ZipEntry> = zip.entries().asSequence()
-            .filter { entry: ZipEntry -> !entry.isDirectory }
+        val entries = zip.entries().asSequence()
+            .filter { entry -> !entry.isDirectory }
             .toList()
-        val paths: List<String> = entries.map { entry: ZipEntry -> entry.name }
+        val paths = entries.map { entry -> entry.name }
 
-        val topLevel: Map<String, Int> = entries
-            .groupBy(
-                keySelector = { entry: ZipEntry ->
-                    entry.name.substringBefore('/', missingDelimiterValue = "[root files]")
-                }
-            )
-            .mapValues { item: Map.Entry<String, List<ZipEntry>> -> item.value.size }
+        val topLevel = entries
+            .groupBy { entry ->
+                entry.name.substringBefore('/', missingDelimiterValue = "[root files]")
+            }
+            .mapValues { groupedEntries -> groupedEntries.value.size }
             .toSortedMap()
 
         val importantFiles = listOf(
