@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -26,6 +30,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,7 +55,25 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme(colorScheme = lightColorScheme()) {
+            MaterialTheme(
+                colorScheme = lightColorScheme(
+                    primary = Color(0xFF2457C5),
+                    onPrimary = Color.White,
+                    secondary = Color(0xFF087E8B),
+                    background = Color(0xFFF5F7FC),
+                    surface = Color.White,
+                    surfaceVariant = Color(0xFFEAF0FA),
+                    onSurface = Color(0xFF17243A),
+                    onSurfaceVariant = Color(0xFF46556D)
+                ),
+                shapes = Shapes(
+                    extraSmall = RoundedCornerShape(8.dp),
+                    small = RoundedCornerShape(12.dp),
+                    medium = RoundedCornerShape(18.dp),
+                    large = RoundedCornerShape(24.dp),
+                    extraLarge = RoundedCornerShape(28.dp)
+                )
+            ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     XhubReaDashboard()
                 }
@@ -259,22 +283,62 @@ private fun XhubReaDashboard() {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)    ) {
+        contentPadding = PaddingValues(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 36.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         item {
-            Text(
-                text = "XhubREA",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Understand apps. Build original ideas.",
-                style = MaterialTheme.typography.bodyLarge
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(26.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF14294B)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(modifier = Modifier.padding(22.dp)) {
+                    Text(
+                        text = "XhubREA",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Understand apps. Build original ideas.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFFDCE7FF)
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Color(0xFF24436F)
+                    ) {
+                        Text(
+                            text = "READ-ONLY APK RESEARCH",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
         item {
-            Text("Project workspace", style = MaterialTheme.typography.titleLarge)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("WORKSPACE STATUS", style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Text(status, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+            }
+        }
+        item {
+            SectionHeading(title = "Project workspace", subtitle = "Keep notes and observations for your authorized research.")
             OutlinedTextField(
                 value = target,
                 onValueChange = { target = it },
@@ -311,7 +375,7 @@ private fun XhubReaDashboard() {
             }
         }
         item {
-            Text("Authorized APK metadata viewer", style = MaterialTheme.typography.titleLarge)
+            SectionHeading(title = "APK research tools", subtitle = "Choose an APK once, then run the analysis modules below.")
             Text(
                 "Choose an APK file to read basic package metadata. The APK is not installed or executed.",
                 style = MaterialTheme.typography.bodyMedium
@@ -531,7 +595,7 @@ private fun XhubReaDashboard() {
             InfoCard(title = "Full Research Lab — code, UI, resources, game, API hints & test checks", body = fullResearchReport)
                         InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("APK App Information Dashboard", style = MaterialTheme.typography.titleLarge)
+            SectionHeading(title = "APK information dashboard", subtitle = "A quick summary of the selected package.")
             InfoCard(title = "App identity", body = reportSection(apkReport, "App name:"))
             InfoCard(title = "Package and version", body = reportSection(apkReport, "Package:"))
             InfoCard(title = "File size", body = reportSection(apkReport, "APK file size:"))
@@ -1206,16 +1270,44 @@ private fun reportSection(report: String, heading: String): String {
 private fun InfoCard(title: String, body: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(body, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
+    }
+}
+
+@Composable
+private fun SectionHeading(title: String, subtitle: String) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
