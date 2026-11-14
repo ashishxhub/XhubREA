@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,7 +74,7 @@ class MainActivity : ComponentActivity() {
                     extraLarge = RoundedCornerShape(28.dp)
                 )
             ) {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                Surface(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                     XhubReaDashboard()
                 }
             }
@@ -115,11 +118,7 @@ private fun XhubReaDashboard() {
                 apkReport = withContext(Dispatchers.IO) {
                     runCatching {
                         val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
-                        context.contentResolver.openInputStream(uri)?.use { input ->
-                            apkFile.outputStream().use { output ->
-                                input.copyTo(output)
-                            }
-                        } ?: error("Could not open the selected file.")
+                        copyUriToFileBounded(context, uri, apkFile)
 
                         val inspectFlags = PackageManager.GET_PERMISSIONS or
                             PackageManager.GET_ACTIVITIES or
@@ -142,9 +141,7 @@ private fun XhubReaDashboard() {
                             context,
                             apkFile.length()
                         )
-                        val sha256 = java.security.MessageDigest.getInstance("SHA-256")
-                            .digest(apkFile.readBytes())
-                            .joinToString("") { byte -> "%02x".format(byte) }
+                        val sha256 = sha256File(apkFile)
 
                         val version = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                             packageInfo.longVersionCode
@@ -1035,15 +1032,60 @@ private fun inventoryApkResources(apkFile: File): String {
 }
 
 private fun inspectDexHeaders(apkFile: File): String = AdvancedDexAnalyzer.inspect(apkFile)
+
+private const val MAX_IMPORTED_APK_BYTES = 512L * 1024L * 1024L
+
+private fun copyUriToFileBounded(
+    context: android.content.Context,
+    uri: android.net.Uri,
+    destination: File
+) {
+    destination.delete()
+    try {
+        val input = context.contentResolver.openInputStream(uri)
+            ?: error("Could not open the selected file.")
+        input.use { source ->
+            destination.outputStream().buffered().use { output ->
+                val buffer = ByteArray(32 * 1024)
+                var totalBytes = 0L
+                while (true) {
+                    val count = source.read(buffer)
+                    if (count < 0) break
+                    totalBytes += count
+                    require(totalBytes <= MAX_IMPORTED_APK_BYTES) {
+                        "APK is larger than the 512 MB safety limit."
+                    }
+                    output.write(buffer, 0, count)
+                }
+            }
+        }
+        require(destination.length() > 0L) { "The selected file is empty." }
+    } catch (error: Throwable) {
+        destination.delete()
+        throw error
+    }
+}
+
+private fun sha256File(file: File): String {
+    val digest = java.security.MessageDigest.getInstance("SHA-256")
+    file.inputStream().buffered().use { input ->
+        val buffer = ByteArray(32 * 1024)
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            digest.update(buffer, 0, count)
+        }
+    }
+    return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+}
+
 private fun inspectApkForComparison(
     context: android.content.Context,
     uri: android.net.Uri
 ): String {
     val apkFile = File.createTempFile("xhubrea_compare_", ".apk", context.cacheDir)
     try {
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            apkFile.outputStream().use { output -> input.copyTo(output) }
-        } ?: error("Could not open the selected file.")
+        copyUriToFileBounded(context, uri, apkFile)
 
         val flags = PackageManager.GET_PERMISSIONS
         val info = context.packageManager.getPackageArchiveInfo(apkFile.absolutePath, flags)
@@ -1054,16 +1096,7 @@ private fun inspectApkForComparison(
             @Suppress("DEPRECATION")
             info.versionCode.toLong()
         }
-        val digest = java.security.MessageDigest.getInstance("SHA-256")
-        apkFile.inputStream().use { input ->
-            val buffer = ByteArray(8 * 1024)
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                digest.update(buffer, 0, count)
-            }
-        }
-        val sha256 = digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+        val sha256 = sha256File(apkFile)
         val permissions = info.requestedPermissions?.toSet().orEmpty()
         val minSdk = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             info.applicationInfo?.minSdkVersion?.toString() ?: "Unknown"
