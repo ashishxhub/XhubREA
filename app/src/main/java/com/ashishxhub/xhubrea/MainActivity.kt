@@ -75,6 +75,7 @@ private fun XhubReaDashboard() {
     var comparisonReport by remember { mutableStateOf("Select a second APK to compare.") }
     var secondApkReport by remember { mutableStateOf("") }
     var dexReport by remember { mutableStateOf("Choose an APK, then analyze its DEX headers.") }
+    var resourceReport by remember { mutableStateOf("Choose an APK, then scan its resource file inventory.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -340,6 +341,28 @@ private fun XhubReaDashboard() {
             }
             InfoCard(title = "DEX File Information Explorer", body = dexReport)
             Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
+                        resourceReport = "Inspect a readable APK first."
+                    } else {
+                        resourceReport = "Scanning APK file inventory…"
+                        scope.launch {
+                            resourceReport = withContext(Dispatchers.IO) {
+                                runCatching { inventoryApkResources(apkFile) }
+                                    .getOrElse { error -> "Could not scan APK inventory: ${error.message ?: "Unknown error"}" }
+                            }
+                            status = "APK resource inventory finished. No files were extracted or executed."
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Scan APK resource inventory")
+            }
+            InfoCard(title = "Resource & File Inventory (read-only)", body = resourceReport)
+            Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
             Text("APK App Information Dashboard", style = MaterialTheme.typography.titleLarge)
@@ -444,6 +467,44 @@ private fun XhubReaDashboard() {
     }
 }
 
+
+private fun inventoryApkResources(apkFile: File): String {
+    return ZipFile(apkFile).use { zip ->
+        val entries = zip.entries().asSequence()
+            .filter { !it.isDirectory }
+            .toList()
+
+        fun countMatching(prefix: String): Int =
+            entries.count { it.name.startsWith(prefix) }
+
+        val categories = listOf(
+            "Android resources (res/)" to countMatching("res/"),
+            "App assets (assets/)" to countMatching("assets/"),
+            "Native libraries (lib/)" to countMatching("lib/"),
+            "META-INF files" to countMatching("META-INF/"),
+            "DEX bytecode files" to entries.count { Regex("""classes(\d*)\.dex""").matches(it.name) }
+        )
+
+        buildString {
+            appendLine("APK file inventory — read-only")
+            appendLine("Total files: ${entries.size}")
+            appendLine()
+            appendLine("Category counts")
+            categories.forEach { (label, count) -> appendLine("$label: $count") }
+            appendLine()
+            appendLine("File paths (first 80)")
+            entries.take(80).forEach { entry ->
+                appendLine("${entry.name} — ${entry.size} bytes")
+            }
+            if (entries.size > 80) {
+                appendLine()
+                appendLine("Showing 80 of ${entries.size} files.")
+            }
+            appendLine()
+            append("No files were extracted, modified, or executed.")
+        }
+    }
+}
 
 private fun inspectDexHeaders(apkFile: File): String {
     return ZipFile(apkFile).use { zip ->
