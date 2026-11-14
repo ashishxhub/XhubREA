@@ -630,9 +630,9 @@ private fun inspectApkArchitecture(apkFile: File): String {
             .toList()
         val paths = entries.map { it.name }
 
-        val topLevel = entries.groupBy { path ->
-            path.substringBefore('/', missingDelimiterValue = "[root files]")
-        }.mapValues { it.value.size }.toSortedMap()
+        val topLevel = entries.groupBy { entry ->
+            entry.name.substringBefore('/', missingDelimiterValue = "[root files]")
+        }.mapValues { groupedEntries -> groupedEntries.size }.toSortedMap()
 
         val importantFiles = listOf(
             "AndroidManifest.xml",
