@@ -464,23 +464,23 @@ private fun inspectDexHeaders(apkFile: File): String {
             val magic = header.copyOfRange(0, 8).toString(Charsets.US_ASCII)
                 .replace("\u0000", "")
             if (!magic.startsWith("dex\n")) {
-                return@joinToString "\${entry.name}\nInvalid or unrecognized DEX header."
+                return@joinToString "${entry.name}\nInvalid or unrecognized DEX header."
             }
 
             val data = ByteBuffer.wrap(header).order(ByteOrder.LITTLE_ENDIAN)
             fun uint(offset: Int): Long = data.getInt(offset).toLong() and 0xffffffffL
 
             buildString {
-                appendLine("File: \${entry.name}")
+                appendLine("File: ${entry.name}")
                 appendLine("DEX magic: $magic")
-                appendLine("ZIP entry size: \${entry.size} bytes")
-                appendLine("Header file size: \${uint(32)} bytes")
-                appendLine("Header size: \${uint(36)} bytes")
-                appendLine("Endian tag: 0x\${uint(40).toString(16)}")
-                appendLine("String IDs: \${uint(56)}")
-                appendLine("Type IDs: \${uint(64)}")
-                appendLine("Method IDs: \${uint(88)}")
-                appendLine("Class definitions: \${uint(96)}")
+                appendLine("ZIP entry size: ${entry.size} bytes")
+                appendLine("Header file size: ${uint(32)} bytes")
+                appendLine("Header size: ${uint(36)} bytes")
+                appendLine("Endian tag: 0x${uint(40).toString(16)}")
+                appendLine("String IDs: ${uint(56)}")
+                appendLine("Type IDs: ${uint(64)}")
+                appendLine("Method IDs: ${uint(88)}")
+                appendLine("Class definitions: ${uint(96)}")
                 append("Header inspection: read-only")
             }
         }
