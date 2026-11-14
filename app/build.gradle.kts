@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.ashishxhub.xhubrea"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.ashishxhub.xhubrea"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
     }
