@@ -109,6 +109,7 @@ private fun XhubReaDashboard() {
     var signingCertificateReport by remember { mutableStateOf("Choose an APK, then inspect its signing certificate metadata.") }
     var fullResearchReport by remember { mutableStateOf("Choose an APK, then run the full research scan.") }
     var fullAnalysisSummary by remember { mutableStateOf("Run Complete Analysis to see each module result here.") }
+    var isCompleteAnalysisRunning by remember { mutableStateOf(false) }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -391,6 +392,7 @@ private fun XhubReaDashboard() {
                     if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
                         status = "Choose and inspect an APK before running the complete analysis."
                     } else {
+                        isCompleteAnalysisRunning = true
                         status = "Running complete analysis suite…"
                         scope.launch {
                             val results = withContext(Dispatchers.IO) {
@@ -448,15 +450,18 @@ private fun XhubReaDashboard() {
                                 appendLine("A completed module may still report limited or heuristic findings. Read each detailed report before drawing conclusions.")
                             }
                             status = "Complete analysis finished. Review each module and its limitations below."
+                            isCompleteAnalysisRunning = false
                         }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Run Complete Analysis — All Modules")
+                enabled = !isCompleteAnalysisRunning
+            ) {
+                Text(if (isCompleteAnalysisRunning) "Analysis Running…" else "Run Complete Analysis — All Modules")
             }
             Text(
-                "Runs the available read-only analysis modules in sequence after an APK is selected. Individual module buttons remain available.",
+                "Runs the available read-only analysis modules in sequence after an APK is selected. The button is disabled while the analysis is running.",
                 style = MaterialTheme.typography.bodySmall
             )
             Spacer(modifier = Modifier.height(8.dp))
