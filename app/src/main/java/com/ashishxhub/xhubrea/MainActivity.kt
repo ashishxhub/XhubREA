@@ -1,5 +1,6 @@
 package com.ashishxhub.xhubrea
 
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -222,6 +223,25 @@ private fun XhubReaDashboard() {
             }
             Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect")) {
+                        status = "Inspect a readable APK before exporting its report."
+                    } else {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "XhubREA APK metadata report")
+                            putExtra(Intent.EXTRA_TEXT, apkReport)
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share APK report"))
+                        status = "APK report is ready to share."
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Export / Share APK report")
+            }
         }
         item {
             InfoCard(
