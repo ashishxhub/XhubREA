@@ -40,9 +40,17 @@ This is an early research MVP, not a complete commercial reverse-engineering sui
 
 Every push to `main` also starts the build workflow automatically.
 
+## Android compatibility and release status
+
+- Minimum supported Android version: Android 6.0 (API 23).
+- Target SDK: Android 16 (API 36).
+- The app uses the system document picker for APK selection and does not request broad storage access.
+- No network permission is declared in the current manifest; cleartext traffic is explicitly disabled.
+- CI creates a debug APK for testing and an **unsigned** release AAB. The unsigned AAB is not ready for Play Console submission. A production release still needs secure signing, app/device testing, a privacy policy and accurate Play Console declarations.
+
 ## Build locally
 
-Requirements: JDK 17 and Gradle 8.9.
+Requirements: JDK 17, Android SDK Platform 36, and Gradle 8.11.1 (Android Gradle Plugin 8.9.1).
 
 ```bash
 gradle --no-daemon assembleDebug
