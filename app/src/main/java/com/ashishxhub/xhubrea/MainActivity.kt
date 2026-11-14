@@ -29,7 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
@@ -56,15 +56,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(
-                colorScheme = lightColorScheme(
-                    primary = Color(0xFF2457C5),
-                    onPrimary = Color.White,
-                    secondary = Color(0xFF087E8B),
-                    background = Color(0xFFF5F7FC),
-                    surface = Color.White,
-                    surfaceVariant = Color(0xFFEAF0FA),
-                    onSurface = Color(0xFF17243A),
-                    onSurfaceVariant = Color(0xFF46556D)
+                colorScheme = darkColorScheme(
+                    primary = Color(0xFF8AB4FF),
+                    onPrimary = Color(0xFF082044),
+                    secondary = Color(0xFF63D7D0),
+                    background = Color(0xFF080F1E),
+                    surface = Color(0xFF111D31),
+                    surfaceVariant = Color(0xFF1C2B43),
+                    onSurface = Color(0xFFEAF1FF),
+                    onSurfaceVariant = Color(0xFFB1C0D8),
+                    onBackground = Color(0xFFEAF1FF),
+                    secondaryContainer = Color(0xFF123A43),
+                    onSecondaryContainer = Color(0xFFD7FFFA),
+                    outline = Color(0xFF344761)
                 ),
                 shapes = Shapes(
                     extraSmall = RoundedCornerShape(8.dp),
@@ -279,20 +283,20 @@ private fun XhubReaDashboard() {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 36.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 44.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF14294B)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF17365F)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(modifier = Modifier.padding(22.dp)) {
                     Text(
                         text = "XhubREA",
-                        fontSize = 32.sp,
+                        fontSize = 36.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White
                     )
@@ -305,10 +309,10 @@ private fun XhubReaDashboard() {
                     Spacer(modifier = Modifier.height(14.dp))
                     Surface(
                         shape = RoundedCornerShape(50),
-                        color = Color(0xFF24436F)
+                        color = Color(0xFF24517A)
                     ) {
                         Text(
-                            text = "READ-ONLY APK RESEARCH",
+                            text = "✦  STATIC APK INTELLIGENCE",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White,
@@ -1384,12 +1388,12 @@ private fun InfoCard(title: String, body: String) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 title,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
