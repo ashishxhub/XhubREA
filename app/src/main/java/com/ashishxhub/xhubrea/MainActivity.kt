@@ -69,6 +69,8 @@ private fun XhubReaDashboard() {
         mutableStateOf("Create a project note for an app you own, an open-source app, or an app you have permission to study.")
     }
     var apkReport by remember { mutableStateOf("No APK inspected yet.") }
+    var comparisonReport by remember { mutableStateOf("Select a second APK to compare.") }
+    var secondApkReport by remember { mutableStateOf("") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -201,6 +203,31 @@ private fun XhubReaDashboard() {
         }
     }
 
+    val secondApkPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            status = "Reading second APK for comparison…"
+            scope.launch {
+                secondApkReport = withContext(Dispatchers.IO) {
+                    runCatching {
+                        inspectApkForComparison(context, uri)
+                    }.getOrElse { error ->
+                        "Could not inspect second APK: ${error.message ?: "Unknown error"}"
+                    }
+                }
+                comparisonReport = if (secondApkReport.startsWith("Could not inspect")) {
+                    secondApkReport
+                } else if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect")) {
+                    "First inspect the primary APK, then compare it with this APK."
+                } else {
+                    compareApkReports(apkReport, secondApkReport)
+                }
+                status = "APK comparison finished."
+            }
+        }
+    }
+
     val reportSaver = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/plain")
     ) { uri ->
@@ -328,6 +355,21 @@ private fun XhubReaDashboard() {
                 Text("Save report as TXT file")
             }
             Spacer(modifier = Modifier.height(12.dp))
+            Text("APK Comparison Engine", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Inspect one APK above, then choose a second APK to compare basic metadata. Both files are read-only and are not installed or executed.",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Button(
+                onClick = {
+                    secondApkPicker.launch(arrayOf("application/vnd.android.package-archive", "application/octet-stream"))
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Choose second APK")
+            }
+            InfoCard(title = "Comparison results", body = comparisonReport)
+            Spacer(modifier = Modifier.height(12.dp))
             Text("App Components Explorer", style = MaterialTheme.typography.titleLarge)
             Text(
                 "Component lists are read from the selected APK manifest. They are metadata only and are not launched.",
@@ -376,6 +418,99 @@ private fun XhubReaDashboard() {
     }
 }
 
+
+private fun inspectApkForComparison(
+    context: android.content.Context,
+    uri: android.net.Uri
+): String {
+    val apkFile = File.createTempFile("xhubrea_compare_", ".apk", context.cacheDir)
+    try {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            apkFile.outputStream().use { output -> input.copyTo(output) }
+        } ?: error("Could not open the selected file.")
+
+        val flags = PackageManager.GET_PERMISSIONS
+        val info = context.packageManager.getPackageArchiveInfo(apkFile.absolutePath, flags)
+            ?: error("This file is not a readable Android APK.")
+        val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            info.versionCode.toLong()
+        }
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        apkFile.inputStream().use { input ->
+            val buffer = ByteArray(8 * 1024)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        val sha256 = digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+        val permissions = info.requestedPermissions?.toSet().orEmpty()
+        val minSdk = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            info.applicationInfo?.minSdkVersion?.toString() ?: "Unknown"
+        } else {
+            "Unavailable"
+        }
+        val targetSdk = info.applicationInfo?.targetSdkVersion?.toString() ?: "Unknown"
+
+        return buildString {
+            appendLine("App name: ${info.applicationInfo?.loadLabel(context.packageManager) ?: "Unknown"}")
+            appendLine("Package: ${info.packageName}")
+            appendLine("Version name: ${info.versionName ?: "Unknown"}")
+            appendLine("Version code: $versionCode")
+            appendLine("Minimum SDK: $minSdk")
+            appendLine("Target SDK: $targetSdk")
+            appendLine("APK file size: ${apkFile.length()}")
+            appendLine("SHA-256: $sha256")
+            appendLine("Permissions: ${permissions.size}")
+            appendLine(permissions.sorted().joinToString(","))
+        }
+    } finally {
+        apkFile.delete()
+    }
+}
+
+private fun compareApkReports(first: String, second: String): String {
+    val keys = listOf(
+        "App name:",
+        "Package:",
+        "Version name:",
+        "Version code:",
+        "Minimum SDK:",
+        "Target SDK:",
+        "APK file size:",
+        "SHA-256:",
+        "Permissions:"
+    )
+    val firstLines = first.lines()
+    val secondLines = second.lines()
+    return buildString {
+        appendLine("Comparison (Primary APK vs Second APK)")
+        keys.forEach { key ->
+            val a = firstLines.firstOrNull { it.startsWith(key) }?.substringAfter(key)?.trim() ?: "Not available"
+            val b = secondLines.firstOrNull { it.startsWith(key) }?.substringAfter(key)?.trim() ?: "Not available"
+            appendLine()
+            appendLine(key.removeSuffix(":"))
+            appendLine("Primary: $a")
+            appendLine("Second: $b")
+            appendLine(if (a == b) "Result: SAME" else "Result: DIFFERENT")
+        }
+        val firstPermissions = firstLines.dropWhile { !it.startsWith("Declared permissions (") }
+            .drop(1).takeWhile { it.isNotBlank() }.filter { it != "None declared" }.toSet()
+        val secondPermissionsLine = secondLines.firstOrNull { it.startsWith("Permissions:") }
+        val secondPermissions = secondPermissionsLine?.substringAfter(":")?.split(",")
+            ?.filter { it.isNotBlank() }?.toSet().orEmpty()
+        val added = secondPermissions - firstPermissions
+        val removed = firstPermissions - secondPermissions
+        appendLine()
+        appendLine("Permission differences")
+        appendLine("Added in second APK: ${added.joinToString().ifBlank { "None" }}")
+        appendLine("Not present in second APK: ${removed.joinToString().ifBlank { "None" }}")
+    }
+}
 
 private fun reportSection(report: String, heading: String): String {
     if (report == "No APK inspected yet." || report.startsWith("Could not inspect")) {
