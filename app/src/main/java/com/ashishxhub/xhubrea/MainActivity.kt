@@ -80,6 +80,7 @@ private fun XhubReaDashboard() {
     var architectureReport by remember { mutableStateOf("Choose an APK, then inspect its high-level package layout.") }
     var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
+    var engineReport by remember { mutableStateOf("Choose an APK, then detect likely app/game technology.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -436,6 +437,29 @@ private fun XhubReaDashboard() {
                 Text("Review exported components")
             }
             InfoCard(title = "Component Exposure Review (read-only)", body = exposureReport)
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
+                        engineReport = "Inspect a readable APK first."
+                    } else {
+                        engineReport = "Checking package fingerprints…"
+                        scope.launch {
+                            engineReport = withContext(Dispatchers.IO) {
+                                runCatching { detectAppGameTechnology(apkFile) }
+                                    .getOrElse { error -> "Technology detection failed: ${error.message ?: "Unknown error"}" }
+                            }
+                            status = "Technology fingerprint scan finished. Results are heuristic."
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Detect app / game technology")
+            }
+            InfoCard(title = "Game Engine & Framework Detector (heuristic)", body = engineReport)
             Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
@@ -537,6 +561,63 @@ private fun XhubReaDashboard() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+
+private fun detectAppGameTechnology(apkFile: File): String {
+    return ZipFile(apkFile).use { zip ->
+        val paths = zip.entries().asSequence()
+            .filter { !it.isDirectory }
+            .map { it.name.lowercase() }
+            .toList()
+        val fingerprints = listOf(
+            "Unity" to listOf("lib/arm64-v8a/libunity.so", "lib/armeabi-v7a/libunity.so", "assets/bin/data/", "assets/bin/data/managed/"),
+            "Unreal Engine" to listOf("lib/arm64-v8a/libue4.so", "lib/armeabi-v7a/libue4.so", "lib/arm64-v8a/libunreal.so", "assets/ue4game/"),
+            "Godot" to listOf("lib/arm64-v8a/libgodot_android.so", "lib/armeabi-v7a/libgodot_android.so", "assets/.godot/"),
+            "Flutter" to listOf("lib/arm64-v8a/libflutter.so", "lib/armeabi-v7a/libflutter.so", "assets/flutter_assets/"),
+            "React Native" to listOf("lib/arm64-v8a/libreactnative.so", "assets/index.android.bundle", "lib/armeabi-v7a/libreactnative.so"),
+            "Xamarin / .NET for Android" to listOf("assemblies/monodroid.dll", "lib/arm64-v8a/libmonodroid.so", "assemblies/")
+        )
+        val matches = fingerprints.mapNotNull { (technology, markers) ->
+            val found = markers.filter { marker -> paths.any { path ->
+                if (marker.endsWith("/")) path.startsWith(marker) else path == marker || path.endsWith("/" + marker.substringAfterLast('/'))
+            } }
+            if (found.isNotEmpty()) technology to found else null
+        }
+        val nativeLibraries = paths.filter { it.startsWith("lib/") && it.endsWith(".so") }
+        val frameworkEvidence = paths.filter { path ->
+            path.startsWith("assets/flutter_assets/") ||
+                path.startsWith("assets/bin/data/") ||
+                path.startsWith("assets/ue4game/") ||
+                path.endsWith("index.android.bundle")
+        }.take(25)
+
+        buildString {
+            appendLine("App / Game Technology Fingerprint — read-only heuristic")
+            appendLine("Package entries scanned: ${paths.size}")
+            appendLine()
+            appendLine("Likely technology matches")
+            if (matches.isEmpty()) {
+                appendLine("No known engine/framework fingerprint matched.")
+                appendLine("Possible explanations: native Android app, renamed/packed files, uncommon engine, or insufficient evidence.")
+            } else {
+                matches.forEach { (technology, evidence) ->
+                    appendLine("$technology — possible match")
+                    evidence.forEach { appendLine("  Evidence: $it") }
+                }
+            }
+            appendLine()
+            appendLine("Native libraries (.so): ${nativeLibraries.size}")
+            nativeLibraries.take(40).forEach { appendLine(it) }
+            if (nativeLibraries.size > 40) appendLine("Showing 40 of ${nativeLibraries.size} native libraries.")
+            appendLine()
+            appendLine("Additional framework-related paths")
+            frameworkEvidence.forEach { appendLine(it) }
+            if (frameworkEvidence.isEmpty()) appendLine("No additional known framework paths found.")
+            appendLine()
+            append("Important: these are filename/path fingerprints, not proof of the engine or framework. Obfuscation, custom packaging, split APKs, and engine versions can change the layout. File contents were not extracted or executed.")
         }
     }
 }
