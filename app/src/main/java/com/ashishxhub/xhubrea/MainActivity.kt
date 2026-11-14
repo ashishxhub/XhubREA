@@ -79,6 +79,7 @@ private fun XhubReaDashboard() {
     var resourceTypeReport by remember { mutableStateOf("Choose an APK, then analyze file types and sizes.") }
     var architectureReport by remember { mutableStateOf("Choose an APK, then inspect its high-level package layout.") }
     var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
+    var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -424,6 +425,17 @@ private fun XhubReaDashboard() {
                 Text("Generate manifest summary")
             }
             InfoCard(title = "Manifest Summary Analyzer (read-only)", body = manifestReport)
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    exposureReport = reviewExportedComponents(apkReport)
+                    status = "Exported component review generated from APK metadata."
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Review exported components")
+            }
+            InfoCard(title = "Component Exposure Review (read-only)", body = exposureReport)
             Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
@@ -868,6 +880,50 @@ private fun summarizeManifest(report: String): String {
         }
         appendLine()
         append("This is a summary of metadata exposed by Android PackageManager, not a raw binary XML decode. Exported status alone does not establish a vulnerability.")
+    }
+}
+
+private fun reviewExportedComponents(report: String): String {
+    if (report == "No APK inspected yet." || report.startsWith("Could not inspect")) {
+        return "Inspect a readable APK first."
+    }
+
+    fun readSection(name: String): List<String> {
+        val lines = report.lines()
+        val index = lines.indexOfFirst { it.startsWith("$name (") }
+        if (index < 0) return emptyList()
+        return lines.drop(index + 1).takeWhile { it.isNotBlank() }
+            .filterNot { it == "None found" }
+    }
+
+    val groups = listOf(
+        "Activities" to readSection("Activities"),
+        "Services" to readSection("Services"),
+        "Receivers" to readSection("Receivers"),
+        "Providers" to readSection("Providers")
+    )
+    val exported = groups.flatMap { (kind, components) ->
+        components.filter { it.contains("exported=true", ignoreCase = true) }
+            .map { "$kind: $it" }
+    }
+    val notExported = groups.sumOf { (_, components) ->
+        components.count { it.contains("exported=false", ignoreCase = true) }
+    }
+
+    return buildString {
+        appendLine("Exported component review — read-only metadata")
+        appendLine("Exported components found in displayed metadata: ${exported.size}")
+        appendLine("Components marked not exported: $notExported")
+        appendLine()
+        appendLine("Exported component entries")
+        if (exported.isEmpty()) {
+            appendLine("No exported components were listed in the available metadata.")
+        } else {
+            exported.take(40).forEach { appendLine(it) }
+            if (exported.size > 40) appendLine("Showing 40 of ${exported.size} entries.")
+        }
+        appendLine()
+        append("Exported means Android may allow other apps or system components to address a component, subject to its configuration and permissions. This status alone is not a security flaw; review intended design and access controls. Only the first 20 components per category are included in the base report.")
     }
 }
 
