@@ -81,6 +81,7 @@ private fun XhubReaDashboard() {
     var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
     var engineReport by remember { mutableStateOf("Choose an APK, then detect likely app/game technology.") }
+    var nativeLibraryReport by remember { mutableStateOf("Choose an APK, then analyze native library ABIs and file sizes.") }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -257,8 +258,7 @@ private fun XhubReaDashboard() {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
+        verticalArrangement = Arrangement.spacedBy(14.dp)    ) {
         item {
             Text(
                 text = "XhubREA",
@@ -460,6 +460,29 @@ private fun XhubReaDashboard() {
                 Text("Detect app / game technology")
             }
             InfoCard(title = "Game Engine & Framework Detector (heuristic)", body = engineReport)
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
+                        nativeLibraryReport = "Inspect a readable APK first."
+                    } else {
+                        nativeLibraryReport = "Analyzing native library metadata…"
+                        scope.launch {
+                            nativeLibraryReport = withContext(Dispatchers.IO) {
+                                runCatching { analyzeNativeLibraries(apkFile) }
+                                    .getOrElse { error -> "Native library analysis failed: ${error.message ?: "Unknown error"}" }
+                            }
+                            status = "Native library ABI analysis finished. No library was loaded or executed."
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Analyze native libraries")
+            }
+            InfoCard(title = "Native Library & ABI Analyzer (read-only)", body = nativeLibraryReport)
             Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
@@ -517,8 +540,7 @@ private fun XhubReaDashboard() {
             }
             InfoCard(title = "Comparison results", body = comparisonReport)
             Spacer(modifier = Modifier.height(12.dp))
-            Text("App Components Explorer", style = MaterialTheme.typography.titleLarge)
-            Text(
+            Text("App Components Explorer", style = MaterialTheme.typography.titleLarge)            Text(
                 "Component lists are read from the selected APK manifest. They are metadata only and are not launched.",
                 style = MaterialTheme.typography.bodySmall
             )
@@ -622,6 +644,53 @@ private fun detectAppGameTechnology(apkFile: File): String {
     }
 }
 
+
+private fun analyzeNativeLibraries(apkFile: File): String {
+    return ZipFile(apkFile).use { zip ->
+        val libraries = zip.entries().asSequence()
+            .filter { !it.isDirectory && it.name.startsWith("lib/") && it.name.endsWith(".so", true) }
+            .toList()
+
+        val abiDescriptions = mapOf(
+            "arm64-v8a" to "64-bit ARM",
+            "armeabi-v7a" to "32-bit ARM",
+            "armeabi" to "Legacy ARM",
+            "x86" to "32-bit Intel",
+            "x86_64" to "64-bit Intel",
+            "mips" to "Legacy MIPS",
+            "mips64" to "64-bit MIPS"
+        )
+        val grouped = libraries.groupBy { entry ->
+            entry.name.removePrefix("lib/").substringBefore('/')
+        }.toSortedMap()
+        val totalBytes = libraries.sumOf { it.size.coerceAtLeast(0L) }
+
+        buildString {
+            appendLine("Native Library & ABI Analysis — ZIP metadata only")
+            appendLine("Native .so files found: ${libraries.size}")
+            appendLine("Known uncompressed size total: ${totalBytes} bytes")
+            appendLine("ABI groups found: ${grouped.size}")
+            appendLine()
+            appendLine("ABI summary (folder | architecture | library count | size)")
+            if (grouped.isEmpty()) {
+                appendLine("No native .so libraries found under lib/. This does not prove the app has no native code; libraries may be packaged differently or loaded through other mechanisms.")
+            } else {
+                grouped.forEach { (abi, files) ->
+                    val size = files.sumOf { it.size.coerceAtLeast(0L) }
+                    appendLine("$abi | ${abiDescriptions[abi] ?: "Unknown / unrecognized ABI"} | ${files.size} | ${size} bytes")
+                }
+            }
+            appendLine()
+            appendLine("Library file list (up to 100)")
+            libraries.sortedBy { it.name }.take(100).forEach { entry ->
+                appendLine("${entry.name} | ${entry.size} bytes")
+            }
+            if (libraries.size > 100) appendLine("Showing 100 of ${libraries.size} native libraries.")
+            appendLine()
+            append("This analyzer reads ZIP entry names and sizes only. It does not load, execute, disassemble, or modify native libraries. ABI presence suggests packaged architecture support but does not guarantee a device can run the app.")
+        }
+    }
+}
 
 private fun inspectApkArchitecture(apkFile: File): String {
     return ZipFile(apkFile).use { zip ->
@@ -777,8 +846,7 @@ private fun inspectDexHeaders(apkFile: File): String {
 
         entries.joinToString("\n\n") { entry ->
             val header = ByteArray(112)
-            zip.getInputStream(entry).use { input ->
-                java.io.DataInputStream(input).readFully(header)
+            zip.getInputStream(entry).use { input ->                java.io.DataInputStream(input).readFully(header)
             }
             val magic = header.copyOfRange(0, 8).toString(Charsets.US_ASCII)
                 .replace("\u0000", "")
