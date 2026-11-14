@@ -111,6 +111,18 @@ private fun XhubReaDashboard() {
                             ?: "Unknown"
 
                         val permissionList = packageInfo.requestedPermissions?.toList().orEmpty()
+                        val permissionAnalysis = permissionList.map { permissionName ->
+                            val category = runCatching {
+                                val info = context.packageManager.getPermissionInfo(permissionName, 0)
+                                when (info.protectionLevel and android.content.pm.PermissionInfo.PROTECTION_MASK_BASE) {
+                                    android.content.pm.PermissionInfo.PROTECTION_DANGEROUS -> "Dangerous (runtime-sensitive)"
+                                    android.content.pm.PermissionInfo.PROTECTION_SIGNATURE -> "Signature (restricted)"
+                                    android.content.pm.PermissionInfo.PROTECTION_NORMAL -> "Normal"
+                                    else -> "Other / special"
+                                }
+                            }.getOrDefault("Unknown / not available")
+                            "$permissionName — $category"
+                        }
                         val activities = packageInfo.activities?.map { it.name }.orEmpty()
                         val services = packageInfo.services?.map { it.name }.orEmpty()
                         val receivers = packageInfo.receivers?.map { it.name }.orEmpty()
@@ -126,6 +138,9 @@ private fun XhubReaDashboard() {
                             appendLine()
                             appendLine("Declared permissions (${permissionList.size})")
                             appendLine(permissionList.take(30).joinToString("\n").ifBlank { "None declared" })
+                            appendLine()
+                            appendLine("Permission analysis (${permissionAnalysis.size})")
+                            appendLine(permissionAnalysis.take(30).joinToString("\n").ifBlank { "No permissions to analyze" })
                             appendLine()
                             appendLine("Activities (${activities.size})")
                             appendLine(activities.take(20).joinToString("\n").ifBlank { "None found" })
@@ -282,6 +297,12 @@ private fun XhubReaDashboard() {
             InfoCard(title = "Broadcast receivers", body = reportSection(apkReport, "Receivers"))
             InfoCard(title = "Content providers", body = reportSection(apkReport, "Providers"))
             InfoCard(title = "Declared permissions", body = reportSection(apkReport, "Declared permissions"))
+            InfoCard(title = "Permission risk overview", body = reportSection(apkReport, "Permission analysis"))
+            Text(
+                "Permission categories describe Android's declared protection level. They do not prove how an app uses a permission or whether its behavior is safe.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         item {
             InfoCard(
