@@ -25,9 +25,17 @@ internal object BinaryManifestDecoder {
                 "Manifest size limit se bada ya empty hai."
             }
             zip.getInputStream(entry).use { input ->
-                val data = input.readNBytes(MAX_MANIFEST_BYTES + 1)
-                require(data.size <= MAX_MANIFEST_BYTES) { "Manifest size limit exceed." }
-                data
+                val out = java.io.ByteArrayOutputStream()
+                val buffer = ByteArray(8192)
+                var totalRead = 0
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    totalRead += read
+                    require(totalRead <= MAX_MANIFEST_BYTES) { "Manifest size limit exceed." }
+                    out.write(buffer, 0, read)
+                }
+                out.toByteArray()
             }
         }
         return decode(bytes)
@@ -91,7 +99,7 @@ internal object BinaryManifestDecoder {
         val count = i32(b, start + 8)
         val flags = i32(b, start + 16)
         val stringsStart = u32(b, start + 20)
-        require(count in 0..100_000 && stringsStart < size) { "String pool bounds invalid." }
+        require(count in 0..100_000 && stringsStart < size.toLong()) { "String pool bounds invalid." }
         val offsetsStart = start + header
         require(offsetsStart + count * 4L <= start + size) { "String offsets invalid." }
         val utf8 = (flags and 0x100) != 0
