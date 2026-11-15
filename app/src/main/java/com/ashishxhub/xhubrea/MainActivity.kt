@@ -130,6 +130,7 @@ private fun XhubReaDashboard() {
     var resourceTypeReport by remember { mutableStateOf("Choose an APK, then analyze file types and sizes.") }
     var resourcePreviews by remember { mutableStateOf<List<ResourcePreview>>(emptyList()) }
     var resourceSearch by remember { mutableStateOf("") }
+    var fileIntelligenceSearch by remember { mutableStateOf("") }
     var resourceExplorerStatus by remember { mutableStateOf("Load an APK resource preview to explore its images and file categories.") }
     var architectureReport by remember { mutableStateOf("Choose an APK, then inspect its high-level package layout.") }
     var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
@@ -874,6 +875,58 @@ private fun XhubReaDashboard() {
                 Text("Analyze resource types")
             }
             InfoCard(title = "Resource Type Analyzer (read-only)", body = resourceTypeReport)
+            Spacer(modifier = Modifier.height(12.dp))
+            SectionHeading("APK File Intelligence", "APK ke andar kis type ki files hain aur kaunsi sabse badi hain?")
+            OutlinedTextField(
+                value = fileIntelligenceSearch,
+                onValueChange = { fileIntelligenceSearch = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Search extension or file path") },
+                singleLine = true
+            )
+            val fileTypeStats = remember(resourceTypeReport) { parseApkFileTypeStats(resourceTypeReport) }
+            val largestApkFiles = remember(resourceTypeReport) { parseApkLargestFiles(resourceTypeReport) }
+            if (fileTypeStats.isNotEmpty()) {
+                val totalFiles = fileTypeStats.sumOf { it.count }
+                val totalKnownBytes = fileTypeStats.sumOf { it.totalBytes }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ArchitectureNode("File types", fileTypeStats.size.toString(), Modifier.weight(1f))
+                    ArchitectureNode("Files counted", totalFiles.toString(), Modifier.weight(1f))
+                    ArchitectureNode("Known size", formatBytes(totalKnownBytes), Modifier.weight(1f))
+                }
+                fileTypeStats.filter { it.extension.contains(fileIntelligenceSearch, true) }
+                    .forEach { stat ->
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(stat.extension, style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface)
+                                Text("${stat.count} files • ${formatBytes(stat.totalBytes)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary)
+                            }
+                            LinearProgressIndicator(
+                                progress = { if (totalFiles == 0) 0f else stat.count.toFloat() / totalFiles },
+                                modifier = Modifier.fillMaxWidth().height(6.dp)
+                            )
+                        }
+                    }
+                Text("Largest files (top ${largestApkFiles.size})", style = MaterialTheme.typography.titleMedium)
+                largestApkFiles.filter { it.path.contains(fileIntelligenceSearch, true) }
+                    .forEachIndexed { index, entry ->
+                        InfoCard(
+                            title = "${index + 1}. ${entry.path.substringAfterLast('/')}",
+                            body = "${entry.path}\nSize: ${formatBytes(entry.sizeBytes)}\nPossible role: ${explainApkFilePath(entry.path)}"
+                        )
+                    }
+                if (fileTypeStats.none { it.extension.contains(fileIntelligenceSearch, true) } &&
+                    largestApkFiles.none { it.path.contains(fileIntelligenceSearch, true) }) {
+                    Text("Search se koi file type ya large file match nahi hui.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                InfoCard("File Intelligence status", "Pehle APK inspect karo aur 'Analyze resource types' run karo. File-type report available hone par yahan breakdown dikhega.")
+            }
+            InfoCard("File Intelligence guide", "DEX = app ka compiled code; res/ = interface aur graphics resources; assets/ = bundled app files; lib/ = native machine-code libraries. File size aur extension clues dete hain, lekin exact purpose ya runtime usage prove nahi karte. ZIP metadata ka analysis hota hai; files execute nahi hoti.")
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = {
@@ -1545,6 +1598,50 @@ private fun analyzeApkFileTypes(apkFile: File): String {
             append("Only ZIP directory metadata was read; file contents were not opened or extracted.")
         }
     }
+}
+
+private data class ApkFileTypeStat(val extension: String, val count: Int, val totalBytes: Long)
+private data class ApkLargestFile(val path: String, val sizeBytes: Long)
+
+private fun parseApkFileTypeStats(report: String): List<ApkFileTypeStat> {
+    val start = report.indexOf("File types (extension | count | total size)")
+    if (start < 0) return emptyList()
+    return report.substring(start).lineSequence().drop(1).takeWhile { it.isNotBlank() }
+        .filter { it.contains("|") }
+        .mapNotNull { line ->
+            val parts = line.split("|").map { it.trim() }
+            if (parts.size < 3) null else runCatching {
+                ApkFileTypeStat(parts[0], parts[1].toInt(), parts[2].substringBefore(" ").toLong())
+            }.getOrNull()
+        }.toList()
+}
+
+private fun parseApkLargestFiles(report: String): List<ApkLargestFile> {
+    val start = report.indexOf("Largest files (up to 10)")
+    if (start < 0) return emptyList()
+    return report.substring(start).lineSequence().drop(1).takeWhile { it.isNotBlank() }
+        .mapNotNull { line ->
+            val sizeText = line.substringAfterLast("|", "").trim().substringBefore(" ")
+            val path = line.substringBeforeLast("|", "").trim()
+            runCatching { ApkLargestFile(path, sizeText.toLong()) }.getOrNull()
+        }.toList()
+}
+
+private fun formatBytes(bytes: Long): String = when {
+    bytes >= 1024L * 1024L -> "${"%.1f".format(bytes / (1024.0 * 1024.0))} MB"
+    bytes >= 1024L -> "${"%.1f".format(bytes / 1024.0)} KB"
+    else -> "$bytes B"
+}
+
+private fun explainApkFilePath(path: String): String = when {
+    path.startsWith("classes") && path.endsWith(".dex", true) -> "Compiled Android/Dalvik bytecode."
+    path.startsWith("res/") -> "Android app resource such as UI graphics or XML."
+    path.startsWith("assets/") -> "Bundled asset; exact use depends on app code."
+    path.startsWith("lib/") -> "Native library for a CPU architecture."
+    path.endsWith(".so", true) -> "Native shared library."
+    path.endsWith(".arsc", true) -> "Compiled Android resource table."
+    path.endsWith(".xml", true) -> "XML resource or configuration; may be binary-compiled."
+    else -> "File category alone cannot confirm exact purpose."
 }
 
 private data class ResourcePreview(
