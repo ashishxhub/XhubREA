@@ -122,10 +122,10 @@ class ApkEngineTests(unittest.TestCase):
     def test_reports_duplicate_normalized_archive_entries(self):
         path = self.make_apk([
             ("assets/config.json", b"first"),
-            ("assets\\\\config.json", b"second"),
+            ("assets\\config.json", b"second"),
         ])
         report = analyze_apk(path)
-        self.assertEqual(report["duplicate_entry_warnings"], ["assets\\\\config.json"])
+        self.assertEqual(report["duplicate_entry_warnings"], ["assets\\config.json"])
 
     def test_detects_backslash_traversal_paths(self):
         path = self.make_apk([
