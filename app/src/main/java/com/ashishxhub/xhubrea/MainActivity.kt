@@ -9,6 +9,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -135,6 +137,8 @@ private fun XhubReaDashboard() {
     var architectureReport by remember { mutableStateOf("Choose an APK, then inspect its high-level package layout.") }
     var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
     var binaryManifestReport by remember { mutableStateOf("Choose an APK, then decode its binary AndroidManifest.xml.") }
+    var pythonEngineReport by remember { mutableStateOf("Choose an APK, then run the embedded Python structure analyzer.") }
+    var isPythonAnalysisRunning by remember { mutableStateOf(false) }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
     var componentSearch by remember { mutableStateOf("") }
     var permissionSearch by remember { mutableStateOf("") }
@@ -526,6 +530,45 @@ private fun XhubReaDashboard() {
             ) { Text("Decode Binary AndroidManifest") }
             Spacer(Modifier.height(8.dp))
             InfoCard("Binary Manifest Decoder", binaryManifestReport)
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (!apkFile.exists()) {
+                        status = "Pehle APK select karo."
+                    } else {
+                        isPythonAnalysisRunning = true
+                        status = "Python engine APK structure inspect kar raha hai…"
+                        scope.launch {
+                            pythonEngineReport = withContext(Dispatchers.IO) {
+                                runCatching {
+                                    if (!Python.isStarted()) {
+                                        Python.start(AndroidPlatform(context.applicationContext))
+                                    }
+                                    Python.getInstance()
+                                        .getModule("xhubrea_engine")
+                                        .callAttr("analyze_apk_json", apkFile.absolutePath)
+                                        .toString()
+                                }.getOrElse {
+                                    "Python analysis error: ${it.message ?: it.javaClass.simpleName}"
+                                }
+                            }
+                            isPythonAnalysisRunning = false
+                            status = if (pythonEngineReport.startsWith("Python analysis error:")) {
+                                "Python engine analysis failed. Error details report mein hain."
+                            } else {
+                                "Python APK structure analysis complete."
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isPythonAnalysisRunning
+            ) {
+                Text(if (isPythonAnalysisRunning) "Python Analysis Running…" else "Run Python APK Structure Analysis")
+            }
+            Spacer(Modifier.height(8.dp))
+            InfoCard("Python Engine — Read-only APK Report", pythonEngineReport)
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = {
