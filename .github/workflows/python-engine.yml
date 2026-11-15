@@ -1,0 +1,26 @@
+name: Python Analysis Engine Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "python/**"
+      - ".github/workflows/python-engine.yml"
+  pull_request:
+    paths:
+      - "python/**"
+      - ".github/workflows/python-engine.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile Python modules
+        run: python -m compileall -q python
+      - name: Run unit tests
+        working-directory: python
+        run: python -m unittest discover -s tests -v
