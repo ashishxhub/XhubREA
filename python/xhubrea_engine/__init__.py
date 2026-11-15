@@ -16,7 +16,7 @@ from pathlib import PurePosixPath
 MAX_APK_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 100_000
 MAX_TOTAL_UNCOMPRESSED = 2 * 1024 * 1024 * 1024
-DEX_NAME = re.compile(r"classes(?:[2-9][0-9]*)?\.dex\\Z|classes\.dex\\Z")
+DEX_NAME = re.compile(r"classes(?:[2-9][0-9]*)?\.dex\Z|classes\.dex\Z")
 MAX_RESOURCE_REPORT_ITEMS = 30
 
 
@@ -30,7 +30,7 @@ def _sha256_file(path: str) -> str:
 
 def _resource_category(name: str) -> str | None:
     """Classify a resource path using its archive location, without reading content."""
-    normalized = name.replace("\\\\", "/")
+    normalized = name.replace("\\", "/")
     if normalized.startswith("assets/"):
         return "assets"
     if not normalized.startswith("res/"):
@@ -71,7 +71,7 @@ def _resource_inventory(infos: list[zipfile.ZipInfo]) -> dict:
             continue
 
         category_counts[category] += 1
-        suffix = PurePosixPath(item.filename.replace("\\\\", "/")).suffix.lower()
+        suffix = PurePosixPath(item.filename.replace("\\", "/")).suffix.lower()
         extension_counts[suffix if suffix else "[no_extension]"] += 1
         resource_items.append({
             "path": item.filename[:240],
@@ -135,7 +135,7 @@ def analyze_apk(path: str) -> dict:
             for item in infos:
                 name = item.filename
                 names.append(name)
-                normalized = name.replace("\\\\", "/")
+    normalized = name.replace("\\", "/")
                 if normalized in seen_names:
                     duplicate_names.append(name[:240])
                 else:
