@@ -135,7 +135,7 @@ def analyze_apk(path: str) -> dict:
             for item in infos:
                 name = item.filename
                 names.append(name)
-    normalized = name.replace("\\", "/")
+                normalized = name.replace("\\", "/")
                 if normalized in seen_names:
                     duplicate_names.append(name[:240])
                 else:
