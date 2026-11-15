@@ -52,6 +52,8 @@ def analyze_apk(path: str) -> dict:
             resource_files = 0
             asset_files = 0
             suspicious_names = []
+            duplicate_names = []
+            seen_names = set()
             names = []
 
             for item in infos:
@@ -100,12 +102,14 @@ def analyze_apk(path: str) -> dict:
                 "assets": {"count": asset_files},
                 "top_level_entry_counts": dict(sorted(counts.items())),
                 "path_safety_warnings": suspicious_names[:100],
+                "duplicate_entry_warnings": duplicate_names[:100],
                 "notes_hi": [
                     "Yeh report sirf APK ki ZIP structure ko padhti hai.",
                     "APK install ya execute nahi hota.",
                     "DEX files ka code decompile ya run nahi kiya jata.",
                     "Manifest format hint hai; binary XML ka full decode alag module karta hai.",
                     "Path warnings suspicious archive names dikhati hain; files extract nahi ki jaati.",
+                    "Duplicate entry warnings ek hi normalized path ke multiple records dikhati hain.",
                 ],
             }
     except zipfile.BadZipFile as exc:
