@@ -81,6 +81,22 @@ class ApkEngineTests(unittest.TestCase):
         report = analyze_apk(path)
         self.assertIn("../outside.txt", report["path_safety_warnings"])
 
+    def test_reports_duplicate_normalized_archive_entries(self):
+        path = self.make_apk([
+            ("assets/config.json", b"first"),
+            ("assets\\\\config.json", b"second"),
+        ])
+        report = analyze_apk(path)
+        self.assertEqual(report["duplicate_entry_warnings"], ["assets\\\\config.json"])
+
+    def test_detects_backslash_traversal_paths(self):
+        path = self.make_apk([
+            ("..\\\\outside.txt", b"data"),
+            ("AndroidManifest.xml", b"manifest"),
+        ])
+        report = analyze_apk(path)
+        self.assertIn("..\\\\outside.txt", report["path_safety_warnings"])
+
     def test_only_counts_valid_dex_filename_patterns(self):
         path = self.make_apk([
             ("classes.dex", b"one"),
