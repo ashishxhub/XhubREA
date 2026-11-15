@@ -619,6 +619,54 @@ private fun XhubReaDashboard() {
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(12.dp))
+            SectionHeading("Architecture map", "Components ko simple diagram mein dekho — ye types ka map hai, proven connections nahi.")
+            Card(
+                modifier = Modifier.fillMaxWidth().then(
+                    if (smoothMotion) Modifier.animateContentSize(animationSpec = tween(300)) else Modifier
+                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    ArchitectureNode("📱 Android App Package", "APK container")
+                    Text("↓", fontSize = 22.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    ArchitectureNode("📄 Manifest", "App declarations & component list")
+                    Text("↓", fontSize = 22.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        ArchitectureNode("🖥 Activities", "Screens / entry points", Modifier.weight(1f))
+                        ArchitectureNode("⚙ Services", "Background work", Modifier.weight(1f))
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        ArchitectureNode("📡 Receivers", "Event listeners", Modifier.weight(1f))
+                        ArchitectureNode("🗂 Providers", "Structured data access", Modifier.weight(1f))
+                    }
+                    if (showHints) {
+                        Spacer(Modifier.height(10.dp))
+                        Text("🔍 Important: Is diagram se component ke types pata chalte hain. Kaun sa screen kis screen ko kholta hai, ya kis component ko call karta hai, woh static manifest count se confirm nahi hota.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            SectionHeading("Evidence & confidence", "Jo confirm hai aur jo abhi unknown hai, unhe alag rakho.")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    EvidenceLine("🟢 Direct metadata", "Package name, version aur listed component counts", "High — Android PackageManager se read kiya", apkReport != "No APK inspected yet." && !apkReport.startsWith("Could not inspect"))
+                    EvidenceLine("🟡 Pattern-based clue", "Game engine, framework aur file markers", "Medium / heuristic — marker milna hint hai, final proof nahi", engineReport != "Choose an APK, then detect likely app/game technology.")
+                    EvidenceLine("⚪ Runtime behaviour", "Actual screen navigation, taps, network response aur live behaviour", "Unknown — app ko install ya run nahi kiya jata", false)
+                    if (showHints) {
+                        Spacer(Modifier.height(8.dp))
+                        Text("🧠 Confidence ka matlab: High = seedha metadata mila. Medium = file-name/pattern se andaza. Unknown = is tool ne abhi test hi nahi kiya. Unknown ka matlab safe ya unsafe dono nahi hota.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = {
@@ -1536,6 +1584,58 @@ private fun extractSectionCount(report: String, heading: String): Int {
     val match = Regex("""${Regex.escape(heading)}\s*\((\d+)\)""")
         .find(report)
     return match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+}
+
+@Composable
+private fun ArchitectureNode(
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(title, fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(3.dp))
+            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun EvidenceLine(
+    title: String,
+    detail: String,
+    confidence: String,
+    available: Boolean
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 7.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(2.dp))
+            Text(detail, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(confidence, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary)
+        }
+        Text(if (available) "Available" else "Not tested",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }
 
 @Composable
