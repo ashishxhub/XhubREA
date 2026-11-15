@@ -60,6 +60,10 @@ def analyze_apk(path: str) -> dict:
                 name = item.filename
                 names.append(name)
                 normalized = name.replace("\\", "/")
+                if normalized in seen_names:
+                    duplicate_names.append(name[:240])
+                else:
+                    seen_names.add(normalized)
                 parts = PurePosixPath(normalized).parts
                 if normalized.startswith("/") or ".." in parts:
                     suspicious_names.append(name[:240])
