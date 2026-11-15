@@ -59,7 +59,7 @@ internal object DexIntelligenceEngine {
         val fileSize = u32(32)
         val headerSize = u32(36)
         val endian = u32(40)
-        require(headerSize == 112L && fileSize in 112..bytes.size.toLong() &&
+        require(headerSize == 112L && fileSize == bytes.size.toLong() &&
             endian == 0x12345678L) { "DEX header validation failed." }
 
         fun table(sizeAt: Int, offAt: Int, width: Long): Pair<Long, Long> {
@@ -85,17 +85,42 @@ internal object DexIntelligenceEngine {
             val offset = u32((stringOff + index * 4L).toInt())
             require(offset in 112 until bytes.size.toLong()) { "String data offset invalid." }
             var p = offset.toInt()
+            var expectedUtf16Units = 0L
             var shift = 0
             while (true) {
                 require(p < bytes.size && shift <= 28) { "Malformed ULEB128 string length." }
                 val v = bytes[p++].toInt() and 255
+                expectedUtf16Units = expectedUtf16Units or ((v and 0x7f).toLong() shl shift)
                 if (v and 128 == 0) break
                 shift += 7
             }
-            val start = p
-            while (p < bytes.size && bytes[p].toInt() != 0) p++
-            require(p < bytes.size && p - start <= 65536) { "Unterminated or oversized DEX string." }
-            return bytes.copyOfRange(start, p).toString(Charsets.UTF_8).take(512)
+            require(expectedUtf16Units <= 65536) { "DEX string exceeds safe UTF-16 length." }
+            val decoded = StringBuilder(minOf(expectedUtf16Units.toInt(), 512))
+            var units = 0L
+            while (p < bytes.size && bytes[p].toInt() != 0) {
+                val a = bytes[p++].toInt() and 255
+                val ch = when {
+                    a in 1..0x7f -> a
+                    a and 0xe0 == 0xc0 -> {
+                        require(p < bytes.size) { "Truncated DEX MUTF-8 sequence." }
+                        val b2 = bytes[p++].toInt() and 255
+                        require(b2 and 0xc0 == 0x80) { "Invalid DEX MUTF-8 continuation." }
+                        ((a and 0x1f) shl 6) or (b2 and 0x3f)
+                    }
+                    a and 0xf0 == 0xe0 -> {
+                        require(p + 1 < bytes.size) { "Truncated DEX MUTF-8 sequence." }
+                        val b2 = bytes[p++].toInt() and 255
+                        val b3 = bytes[p++].toInt() and 255
+                        require(b2 and 0xc0 == 0x80 && b3 and 0xc0 == 0x80) { "Invalid DEX MUTF-8 continuation." }
+                        ((a and 0x0f) shl 12) or ((b2 and 0x3f) shl 6) or (b3 and 0x3f)
+                    }
+                    else -> throw IllegalArgumentException("Unsupported byte in DEX MUTF-8 string.")
+                }
+                units++
+                if (decoded.length < 512) decoded.append(ch.toChar())
+            }
+            require(p < bytes.size && units == expectedUtf16Units) { "DEX string length/terminator mismatch." }
+            return decoded.toString()
         }
         fun str(index: Int) = stringCache.getOrPut(index) { readString(index) }
         fun type(index: Int): String {
