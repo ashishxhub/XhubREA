@@ -64,7 +64,7 @@ class ApkEngineTests(unittest.TestCase):
     def test_rejects_too_many_entries(self):
         path = self.make_apk([("one", b"1"), ("two", b"2")])
         with patch("xhubrea_engine.MAX_ENTRIES", 1):
-            with self.assertRaisesRegex(ValueError, "too many archive entries"):
+            with self.assertRaisesRegex(ValueError, "bahut zyada entries"):
                 analyze_apk(path)
 
     def test_rejects_declared_uncompressed_size_over_limit(self):
