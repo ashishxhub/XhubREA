@@ -1,6 +1,10 @@
 package com.ashishxhub.xhubrea
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -122,6 +126,9 @@ private fun XhubReaDashboard() {
     var dexReport by remember { mutableStateOf("Choose an APK, then analyze its DEX headers.") }
     var resourceReport by remember { mutableStateOf("Choose an APK, then scan its resource file inventory.") }
     var resourceTypeReport by remember { mutableStateOf("Choose an APK, then analyze file types and sizes.") }
+    var resourcePreviews by remember { mutableStateOf<List<ResourcePreview>>(emptyList()) }
+    var resourceSearch by remember { mutableStateOf("") }
+    var resourceExplorerStatus by remember { mutableStateOf("Load an APK resource preview to explore its images and file categories.") }
     var architectureReport by remember { mutableStateOf("Choose an APK, then inspect its high-level package layout.") }
     var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
@@ -711,6 +718,83 @@ private fun XhubReaDashboard() {
                 Text("Scan APK resource inventory")
             }
             InfoCard(title = "Resource & File Inventory (read-only)", body = resourceReport)
+            Spacer(modifier = Modifier.height(12.dp))
+            SectionHeading("Visual Resource Explorer", "APK ke image assets aur file categories ko browse karo.")
+            OutlinedTextField(
+                value = resourceSearch,
+                onValueChange = { resourceSearch = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Search resource path") },
+                singleLine = true
+            )
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (!apkFile.exists() || apkReport.startsWith("Could not inspect") || apkReport == "No APK inspected yet.") {
+                        resourceExplorerStatus = "Pehle ek readable APK select karo."
+                        resourcePreviews = emptyList()
+                    } else {
+                        resourceExplorerStatus = "Resource previews load ho rahe hain…"
+                        scope.launch {
+                            val result = withContext(Dispatchers.IO) {
+                                runCatching { loadResourcePreviews(apkFile) }
+                            }
+                            result.onSuccess { previews ->
+                                resourcePreviews = previews
+                                resourceExplorerStatus = if (previews.isEmpty()) {
+                                    "Supported image preview nahi mila. File inventory neeche explain ki gayi hai."
+                                } else {
+                                    "${previews.size} safe image preview(s) loaded. Maximum 12 thumbnails."
+                                }
+                            }.onFailure { error ->
+                                resourceExplorerStatus = "Preview load nahi hua: ${error.message ?: "Unknown error"}"
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("🖼 Load visual resource previews") }
+            InfoCard("Explorer status", resourceExplorerStatus)
+            val visiblePreviews = resourcePreviews.filter {
+                it.path.contains(resourceSearch, ignoreCase = true) ||
+                    it.category.contains(resourceSearch, ignoreCase = true)
+            }
+            if (visiblePreviews.isNotEmpty()) {
+                visiblePreviews.forEach { preview ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            preview.bitmap?.let { bitmap ->
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = "Preview of ${preview.path}",
+                                    modifier = Modifier.height(76.dp).weight(0.32f)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(0.68f).padding(start = 10.dp)) {
+                                Text(preview.path.substringAfterLast('/'), fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface)
+                                Text(preview.category, style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary)
+                                Text("${preview.width} × ${preview.height} • ${preview.sizeBytes} bytes",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            } else if (resourcePreviews.isNotEmpty()) {
+                Text("Search se match karta koi resource nahi mila.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (showHints) {
+                InfoCard("Resource guide", "res/drawable = app graphics; res/mipmap = launcher icons; assets/ = app ke bundled files. Sirf supported raster images ka thumbnail banta hai. XML, vector aur binary resources ko file inventory mein dekho. Preview karna app ka runtime behaviour prove nahi karta.")
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = {
@@ -1274,6 +1358,71 @@ private fun analyzeApkFileTypes(apkFile: File): String {
             appendLine()
             append("Only ZIP directory metadata was read; file contents were not opened or extracted.")
         }
+    }
+}
+
+private data class ResourcePreview(
+    val path: String,
+    val category: String,
+    val sizeBytes: Long,
+    val width: Int,
+    val height: Int,
+    val bitmap: Bitmap?
+)
+
+private fun loadResourcePreviews(apkFile: File): List<ResourcePreview> {
+    val maxImageBytes = 2L * 1024L * 1024L
+    val imageExtensions = setOf(".png", ".jpg", ".jpeg", ".webp", ".bmp")
+    return ZipFile(apkFile).use { zip ->
+        zip.entries().asSequence()
+            .filter { entry ->
+                !entry.isDirectory &&
+                    entry.size in 1..maxImageBytes &&
+                    imageExtensions.any { entry.name.lowercase().endsWith(it) } &&
+                    (entry.name.startsWith("res/drawable") ||
+                        entry.name.startsWith("res/mipmap") ||
+                        entry.name.startsWith("assets/"))
+            }
+            .take(12)
+            .mapNotNull { entry ->
+                val bytes = zip.getInputStream(entry).use { input ->
+                    val output = java.io.ByteArrayOutputStream()
+                    val buffer = ByteArray(8192)
+                    var total = 0
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        if (total > maxImageBytes) break
+                        output.write(buffer, 0, count)
+                    }
+                    if (total > maxImageBytes) null else output.toByteArray()
+                } ?: return@mapNotNull null
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@mapNotNull null
+                var sample = 1
+                while (bounds.outWidth / sample > 256 || bounds.outHeight / sample > 256) {
+                    sample *= 2
+                }
+                val bitmap = BitmapFactory.decodeByteArray(
+                    bytes, 0, bytes.size,
+                    BitmapFactory.Options().apply { inSampleSize = sample }
+                )
+                val category = when {
+                    entry.name.startsWith("res/mipmap") -> "Launcher icon"
+                    entry.name.startsWith("res/drawable") -> "Drawable image"
+                    else -> "Bundled asset"
+                }
+                ResourcePreview(
+                    path = entry.name,
+                    category = category,
+                    sizeBytes = entry.size,
+                    width = bounds.outWidth,
+                    height = bounds.outHeight,
+                    bitmap = bitmap
+                )
+            }.toList()
     }
 }
 
