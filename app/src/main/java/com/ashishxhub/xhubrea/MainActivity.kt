@@ -135,6 +135,7 @@ private fun XhubReaDashboard() {
     var binaryManifestReport by remember { mutableStateOf("Choose an APK, then decode its binary AndroidManifest.xml.") }
     var pythonEngineReport by remember { mutableStateOf("Choose an APK, then run the embedded Python structure analyzer.") }
     var resourceIntelligenceReport by remember { mutableStateOf("Run Complete Analysis to generate the Python resource intelligence report.") }
+    var networkIntelligenceReport by remember { mutableStateOf("Run Complete Analysis to generate the network intelligence report.") }
     var isPythonAnalysisRunning by remember { mutableStateOf(false) }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
     var componentSearch by remember { mutableStateOf("") }
@@ -572,6 +573,8 @@ private fun XhubReaDashboard() {
             Spacer(Modifier.height(8.dp))
             InfoCard("Python Resource Intelligence", resourceIntelligenceReport)
             Spacer(Modifier.height(8.dp))
+            InfoCard("Network Intelligence — Static Evidence", networkIntelligenceReport)
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = {
                     val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
@@ -586,7 +589,7 @@ private fun XhubReaDashboard() {
                             val moduleNames = listOf(
                                 "DEX headers", "Resource inventory", "Resource types", "APK architecture",
                                 "Manifest summary", "Exported components", "App/game technology",
-                                "Native libraries", "Signing certificate metadata", "Research Lab", "Python resource intelligence"
+                                "Native libraries", "Signing certificate metadata", "Research Lab", "Python resource intelligence", "Network intelligence"
                             )
                             val modules = listOf<Pair<String, () -> String>>(
                                 moduleNames[0] to { inspectDexHeaders(apkFile) },
@@ -608,7 +611,8 @@ private fun XhubReaDashboard() {
                                         .callAttr("analyze_apk_json", apkFile.absolutePath)
                                         .toString()
                                     formatResourceIntelligenceReport(raw)
-                                }
+                                },
+                                moduleNames[11] to { NetworkIntelligenceAnalyzer.run(apkFile) }
                             )
                             val results = mutableListOf<String>()
                             try {
@@ -635,6 +639,7 @@ private fun XhubReaDashboard() {
                                         8 -> signingCertificateReport = result
                                         9 -> fullResearchReport = result
                                         10 -> resourceIntelligenceReport = result
+                                        11 -> networkIntelligenceReport = result
                                     }
                                     completeAnalysisProgress = index + 1
                                     fullAnalysisSummary = buildString {
@@ -668,7 +673,7 @@ private fun XhubReaDashboard() {
                 Spacer(Modifier.height(6.dp))
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Text(
-                    "Module ${completeAnalysisProgress}/10 • ${completeAnalysisCurrentModule}",
+                    "Module ${completeAnalysisProgress}/12 • ${completeAnalysisCurrentModule}",
                     style = MaterialTheme.typography.bodySmall
                 )
                 TextButton(
