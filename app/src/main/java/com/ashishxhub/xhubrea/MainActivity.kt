@@ -1533,7 +1533,7 @@ private fun reportSection(report: String, heading: String): String {
 }
 
 private fun extractSectionCount(report: String, heading: String): Int {
-    val match = Regex("""${Regex.escape(heading)}\\s*\\((\\d+)\\)""")
+    val match = Regex("""${Regex.escape(heading)}\s*\((\d+)\)""")
         .find(report)
     return match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
 }
