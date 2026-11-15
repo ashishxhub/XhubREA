@@ -66,6 +66,7 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.zip.ZipFile
+import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,6 +134,7 @@ private fun XhubReaDashboard() {
     var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
     var binaryManifestReport by remember { mutableStateOf("Choose an APK, then decode its binary AndroidManifest.xml.") }
     var pythonEngineReport by remember { mutableStateOf("Choose an APK, then run the embedded Python structure analyzer.") }
+    var resourceIntelligenceReport by remember { mutableStateOf("Run Complete Analysis to generate the Python resource intelligence report.") }
     var isPythonAnalysisRunning by remember { mutableStateOf(false) }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
     var componentSearch by remember { mutableStateOf("") }
@@ -568,6 +570,8 @@ private fun XhubReaDashboard() {
             Spacer(Modifier.height(8.dp))
             InfoCard("Python Engine — Read-only APK Report", pythonEngineReport)
             Spacer(Modifier.height(8.dp))
+            InfoCard("Python Resource Intelligence", resourceIntelligenceReport)
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = {
                     val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
@@ -582,7 +586,7 @@ private fun XhubReaDashboard() {
                             val moduleNames = listOf(
                                 "DEX headers", "Resource inventory", "Resource types", "APK architecture",
                                 "Manifest summary", "Exported components", "App/game technology",
-                                "Native libraries", "Signing certificate metadata", "Research Lab"
+                                "Native libraries", "Signing certificate metadata", "Research Lab", "Python resource intelligence"
                             )
                             val modules = listOf<Pair<String, () -> String>>(
                                 moduleNames[0] to { inspectDexHeaders(apkFile) },
@@ -594,7 +598,17 @@ private fun XhubReaDashboard() {
                                 moduleNames[6] to { detectAppGameTechnology(apkFile) },
                                 moduleNames[7] to { analyzeNativeLibraries(apkFile) },
                                 moduleNames[8] to { analyzeApkSigningCertificates(context, apkFile) },
-                                moduleNames[9] to { ResearchLab.run(apkFile) }
+                                moduleNames[9] to { ResearchLab.run(apkFile) },
+                                moduleNames[10] to {
+                                    if (!Python.isStarted()) {
+                                        Python.start(AndroidPlatform(context.applicationContext))
+                                    }
+                                    val raw = Python.getInstance()
+                                        .getModule("xhubrea_engine")
+                                        .callAttr("analyze_apk_json", apkFile.absolutePath)
+                                        .toString()
+                                    formatResourceIntelligenceReport(raw)
+                                }
                             )
                             val results = mutableListOf<String>()
                             try {
@@ -620,6 +634,7 @@ private fun XhubReaDashboard() {
                                         7 -> nativeLibraryReport = result
                                         8 -> signingCertificateReport = result
                                         9 -> fullResearchReport = result
+                                        10 -> resourceIntelligenceReport = result
                                     }
                                     completeAnalysisProgress = index + 1
                                     fullAnalysisSummary = buildString {
@@ -2487,5 +2502,49 @@ private fun buildCombinedResearchReport(vararg sections: String): String = build
         appendLine()
         appendLine("========== SECTION ${index + 1} ==========")
         appendLine(section.ifBlank { "Not run yet." })
+    }
+}
+
+private fun formatResourceIntelligenceReport(rawJson: String): String {
+    return runCatching {
+        val root = JSONObject(rawJson)
+        val intelligence = root.optJSONObject("resource_intelligence")
+            ?: error("resource_intelligence field missing")
+        val categories = intelligence.optJSONObject("category_counts") ?: JSONObject()
+        val extensions = intelligence.optJSONObject("extension_counts") ?: JSONObject()
+        val largest = intelligence.optJSONArray("largest_files")
+        buildString {
+            appendLine("PYTHON RESOURCE INTELLIGENCE — READ ONLY")
+            appendLine("Total resource and asset files: ${intelligence.optInt("total_files")}")
+            appendLine()
+            appendLine("CATEGORY BREAKDOWN")
+            val categoryKeys = categories.keys().asSequence().toList().sorted()
+            if (categoryKeys.isEmpty()) appendLine("No resource categories found.")
+            categoryKeys.forEach { key -> appendLine("$key: ${categories.optInt(key)} files") }
+            appendLine()
+            appendLine("FILE EXTENSIONS")
+            val extensionKeys = extensions.keys().asSequence().toList()
+                .sortedByDescending { extensions.optInt(it) }
+            if (extensionKeys.isEmpty()) appendLine("No extensions found.")
+            extensionKeys.forEach { key -> appendLine("$key: ${extensions.optInt(key)}") }
+            appendLine()
+            appendLine("LARGEST RESOURCE FILES (maximum 30)")
+            if (largest == null || largest.length() == 0) {
+                appendLine("No resource files found.")
+            } else {
+                for (index in 0 until largest.length()) {
+                    val item = largest.optJSONObject(index) ?: continue
+                    val bytes = item.optLong("size_bytes")
+                    appendLine("${index + 1}. ${item.optString("path")} — $bytes bytes — ${item.optString("category")}")
+                }
+            }
+            appendLine()
+            appendLine("LIMITATIONS")
+            appendLine("• Classification uses archive paths and file extensions only.")
+            appendLine("• Resource contents are not extracted, decoded, or executed.")
+            appendLine("• Compiled resource IDs and resources.arsc values are not decoded here.")
+        }
+    }.getOrElse { error ->
+        "Python resource intelligence could not be formatted: ${error.message ?: "Invalid report"}\n\nRaw report:\n${rawJson.take(6000)}"
     }
 }
