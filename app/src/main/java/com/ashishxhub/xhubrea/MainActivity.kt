@@ -814,7 +814,7 @@ private fun XhubReaDashboard() {
                 }
                 shownDexEntries.forEach { entry ->
                     Card(
-                        modifier = Modifier.fillMaxWidth().animateContentSize(),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
@@ -1358,7 +1358,7 @@ private fun XhubReaDashboard() {
             } else {
                 filteredPermissions.forEach { permission ->
                     Card(
-                        modifier = Modifier.fillMaxWidth().animateContentSize(),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
