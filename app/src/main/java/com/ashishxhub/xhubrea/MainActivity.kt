@@ -1800,16 +1800,16 @@ private data class DexSummary(
 )
 
 private fun parseDexSummaries(report: String): List<DexSummary> {
-    val blocks = report.split(Regex("""(?m)^===== (.+?) =====\s*$"""))
-    if (blocks.size < 3) return emptyList()
-    return blocks.chunked(2).mapNotNull { pair ->
-        if (pair.size < 2) return@mapNotNull null
-        val fileName = pair[0].trim().substringAfterLast('\n').trim()
-        val body = pair[1]
+    val headers = Regex("""(?m)^===== (.+?) =====\\s*$""").findAll(report).toList()
+    return headers.mapIndexed { index, match ->
+        val bodyStart = match.range.last + 1
+        val bodyEnd = headers.getOrNull(index + 1)?.range?.first ?: report.length
+        val body = report.substring(bodyStart, bodyEnd)
+        val fileName = match.groupValues[1]
         val version = Regex("""DEX version: (.+)""").find(body)?.groupValues?.get(1) ?: "Unknown"
-        val byteCount = Regex("""Actual ZIP entry bytes: (\d+)""").find(body)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
-        val classCount = Regex("""Class definitions: (\d+)""").find(body)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-        val methodCount = Regex("""Method IDs: (\d+)""").find(body)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val byteCount = Regex("""Actual ZIP entry bytes: (\\d+)""").find(body)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
+        val classCount = Regex("""Class definitions: (\\d+)""").find(body)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val methodCount = Regex("""Method IDs: (\\d+)""").find(body)?.groupValues?.get(1)?.toIntOrNull() ?: 0
         val tableNames = listOf("String IDs", "Type IDs", "Prototype IDs", "Field IDs", "Method IDs", "Class definitions")
         val tables = tableNames.mapNotNull { name ->
             Regex("""(?m)^$name:.*$""").find(body)?.value
