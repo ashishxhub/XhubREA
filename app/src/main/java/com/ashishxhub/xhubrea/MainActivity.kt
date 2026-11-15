@@ -68,15 +68,8 @@ import java.util.zip.ZipFile
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Ask Android for the fastest refresh mode available on this display.
-        // The OS may still choose a lower rate to save battery or for thermal reasons.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val supportedModes = windowManager.defaultDisplay.supportedModes
-            val fastestRefreshRate = supportedModes.maxOfOrNull { it.refreshRate } ?: 60f
-            window.attributes = window.attributes.apply {
-                preferredRefreshRate = fastestRefreshRate
-            }
-        }
+        // Let Android manage the display refresh rate by default.
+        // Users can explicitly enable a higher refresh preference in Settings.
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(
@@ -153,8 +146,8 @@ private fun XhubReaDashboard() {
     var showSettings by remember { mutableStateOf(false) }
     var simpleExplain by remember { mutableStateOf(preferences.getBoolean("simple_explain", true)) }
     var showHints by remember { mutableStateOf(preferences.getBoolean("show_hints", true)) }
-    var smoothMotion by remember { mutableStateOf(preferences.getBoolean("smooth_motion", true)) }
-    var requestHighRefresh by remember { mutableStateOf(preferences.getBoolean("high_refresh", true)) }
+    var smoothMotion by remember { mutableStateOf(preferences.getBoolean("smooth_motion", false)) }
+    var requestHighRefresh by remember { mutableStateOf(preferences.getBoolean("high_refresh", false)) }
 
     val apkPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
