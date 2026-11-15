@@ -125,6 +125,7 @@ private fun XhubReaDashboard() {
     var comparisonReport by remember { mutableStateOf("Select a second APK to compare.") }
     var secondApkReport by remember { mutableStateOf("") }
     var dexReport by remember { mutableStateOf("Choose an APK, then analyze its DEX headers.") }
+    var dexSearch by remember { mutableStateOf("") }
     var resourceReport by remember { mutableStateOf("Choose an APK, then scan its resource file inventory.") }
     var resourceTypeReport by remember { mutableStateOf("Choose an APK, then analyze file types and sizes.") }
     var resourcePreviews by remember { mutableStateOf<List<ResourcePreview>>(emptyList()) }
@@ -699,6 +700,58 @@ private fun XhubReaDashboard() {
                 Text("Analyze DEX file information")
             }
             InfoCard(title = "DEX File Information Explorer", body = dexReport)
+            Spacer(modifier = Modifier.height(12.dp))
+            SectionHeading("DEX Intelligence Explorer", "DEX files ke structure aur counts ko aasaan tareeke se samjho.")
+            OutlinedTextField(
+                value = dexSearch,
+                onValueChange = { dexSearch = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Search DEX file or table name") },
+                singleLine = true
+            )
+            val dexEntries = remember(dexReport) { parseDexSummaries(dexReport) }
+            val shownDexEntries = dexEntries.filter { entry ->
+                "${entry.fileName} ${entry.version} ${entry.tables.joinToString(" ")} ${entry.validation}"
+                    .contains(dexSearch, ignoreCase = true)
+            }
+            if (dexEntries.isNotEmpty()) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ArchitectureNode("DEX files", dexEntries.size.toString(), Modifier.weight(1f))
+                    ArchitectureNode("Classes", dexEntries.sumOf { it.classCount }.toString(), Modifier.weight(1f))
+                    ArchitectureNode("Methods", dexEntries.sumOf { it.methodCount }.toString(), Modifier.weight(1f))
+                }
+                shownDexEntries.forEach { entry ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().animateContentSize(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                            Text(entry.fileName, fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Text("DEX version: ${entry.version} • ${entry.byteCount} bytes",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary)
+                            Text("Classes: ${entry.classCount} • Methods: ${entry.methodCount}",
+                                color = MaterialTheme.colorScheme.onSurface)
+                            entry.tables.forEach { table ->
+                                Text(table, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text("Header: ${entry.validation}", fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.secondary)
+                            Text("Simple meaning: classes = code structure ke class records; methods = method reference records. Counts code quality, app behaviour ya vulnerability prove nahi karte.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+                if (shownDexEntries.isEmpty()) {
+                    Text("Search se koi DEX file match nahi hui.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                InfoCard("DEX learning clue", "classes.dex primary bytecode file hoti hai. classes2.dex, classes3.dex jaise files multidex apps mein extra bytecode rakh sakti hain. Ye explorer header tables aur basic bounds hi inspect karta hai; methods disassemble ya class names extract nahi karta.")
+            } else if (dexReport.startsWith("No DEX files")) {
+                InfoCard("No DEX files", "Is APK mein standard classes*.dex entry nahi mili.")
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = {
@@ -1733,6 +1786,37 @@ private fun summarizeManifest(report: String): String {
         }
         appendLine()
         append("This is a summary of metadata exposed by Android PackageManager, not a raw binary XML decode. Exported status alone does not establish a vulnerability.")
+    }
+}
+
+private data class DexSummary(
+    val fileName: String,
+    val version: String,
+    val byteCount: Long,
+    val classCount: Int,
+    val methodCount: Int,
+    val tables: List<String>,
+    val validation: String
+)
+
+private fun parseDexSummaries(report: String): List<DexSummary> {
+    val blocks = report.split(Regex("""(?m)^===== (.+?) =====\s*$"""))
+    if (blocks.size < 3) return emptyList()
+    return blocks.chunked(2).mapNotNull { pair ->
+        if (pair.size < 2) return@mapNotNull null
+        val fileName = pair[0].trim().substringAfterLast('\n').trim()
+        val body = pair[1]
+        val version = Regex("""DEX version: (.+)""").find(body)?.groupValues?.get(1) ?: "Unknown"
+        val byteCount = Regex("""Actual ZIP entry bytes: (\d+)""").find(body)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
+        val classCount = Regex("""Class definitions: (\d+)""").find(body)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val methodCount = Regex("""Method IDs: (\d+)""").find(body)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val tableNames = listOf("String IDs", "Type IDs", "Prototype IDs", "Field IDs", "Method IDs", "Class definitions")
+        val tables = tableNames.mapNotNull { name ->
+            Regex("""(?m)^$name:.*$""").find(body)?.value
+        }
+        val validation = Regex("""Header validation: (.+)""").find(body)?.groupValues?.get(1)
+            ?: if (body.contains("Skipped:")) "Skipped (size limit)" else "Unavailable / invalid"
+        DexSummary(fileName, version, byteCount, classCount, methodCount, tables, validation)
     }
 }
 
