@@ -57,7 +57,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -142,6 +144,9 @@ private fun XhubReaDashboard() {
     var fullResearchReport by remember { mutableStateOf("Choose an APK, then run the full research scan.") }
     var fullAnalysisSummary by remember { mutableStateOf("Run Complete Analysis to see each module result here.") }
     var isCompleteAnalysisRunning by remember { mutableStateOf(false) }
+    var completeAnalysisProgress by remember { mutableStateOf(0) }
+    var completeAnalysisCurrentModule by remember { mutableStateOf("") }
+    var completeAnalysisJob by remember { mutableStateOf<Job?>(null) }
 
     var showSettings by remember { mutableStateOf(false) }
     var simpleExplain by remember { mutableStateOf(preferences.getBoolean("simple_explain", true)) }
@@ -568,66 +573,74 @@ private fun XhubReaDashboard() {
                     val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
                     if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect") || !apkFile.exists()) {
                         status = "Choose and inspect an APK before running the complete analysis."
-                    } else {
+                    } else if (!isCompleteAnalysisRunning) {
                         isCompleteAnalysisRunning = true
+                        completeAnalysisProgress = 0
+                        completeAnalysisCurrentModule = "Preparing analysis…"
                         status = "Running complete analysis suite…"
-                        scope.launch {
-                            val results = withContext(Dispatchers.IO) {
-                                listOf(
-                                    runCatching { inspectDexHeaders(apkFile) }
-                                        .getOrElse { "DEX analysis failed: ${it.message ?: "Unknown error"}" },
-                                    runCatching { inventoryApkResources(apkFile) }
-                                        .getOrElse { "Resource inventory failed: ${it.message ?: "Unknown error"}" },
-                                    runCatching { analyzeApkFileTypes(apkFile) }
-                                        .getOrElse { "Resource type analysis failed: ${it.message ?: "Unknown error"}" },
-                                    runCatching { inspectApkArchitecture(apkFile) }
-                                        .getOrElse { "Architecture analysis failed: ${it.message ?: "Unknown error"}" },
-                                    runCatching { summarizeManifest(apkReport) }
-                                        .getOrElse { "Manifest summary failed: ${it.message ?: "Unknown error"}" },
-                                    runCatching { reviewExportedComponents(apkReport) }
-                                        .getOrElse { "Component review failed: ${it.message ?: "Unknown error"}" },
-                                    runCatching { detectAppGameTechnology(apkFile) }
-                                        .getOrElse { "Technology detection failed: ${it.message ?: "Unknown error"}" },
-                                    runCatching { analyzeNativeLibraries(apkFile) }
-                                        .getOrElse { "Native library analysis failed: ${it.message ?: "Unknown error"}" },
-                                    runCatching { analyzeApkSigningCertificates(context, apkFile) }
-                                        .getOrElse { "Certificate inspection failed: ${it.message ?: "Unknown error"}" },
-                                    runCatching { ResearchLab.run(apkFile) }
-                                        .getOrElse { "Research Lab failed: ${it.message ?: "Unknown error"}" }
-                                )
-                            }
-                            dexReport = results[0]
-                            resourceReport = results[1]
-                            resourceTypeReport = results[2]
-                            architectureReport = results[3]
-                            manifestReport = results[4]
-                            exposureReport = results[5]
-                            engineReport = results[6]
-                            nativeLibraryReport = results[7]
-                            signingCertificateReport = results[8]
-                            fullResearchReport = results[9]
+                        completeAnalysisJob = scope.launch {
                             val moduleNames = listOf(
                                 "DEX headers", "Resource inventory", "Resource types", "APK architecture",
                                 "Manifest summary", "Exported components", "App/game technology",
                                 "Native libraries", "Signing certificate metadata", "Research Lab"
                             )
-                            val failurePrefixes = listOf(
-                                "DEX analysis failed", "Resource inventory failed", "Resource type analysis failed",
-                                "Architecture analysis failed", "Manifest summary failed", "Component review failed",
-                                "Technology detection failed", "Native library analysis failed",
-                                "Certificate inspection failed", "Research Lab failed"
+                            val modules = listOf<Pair<String, () -> String>>(
+                                moduleNames[0] to { inspectDexHeaders(apkFile) },
+                                moduleNames[1] to { inventoryApkResources(apkFile) },
+                                moduleNames[2] to { analyzeApkFileTypes(apkFile) },
+                                moduleNames[3] to { inspectApkArchitecture(apkFile) },
+                                moduleNames[4] to { summarizeManifest(apkReport) },
+                                moduleNames[5] to { reviewExportedComponents(apkReport) },
+                                moduleNames[6] to { detectAppGameTechnology(apkFile) },
+                                moduleNames[7] to { analyzeNativeLibraries(apkFile) },
+                                moduleNames[8] to { analyzeApkSigningCertificates(context, apkFile) },
+                                moduleNames[9] to { ResearchLab.run(apkFile) }
                             )
-                            fullAnalysisSummary = buildString {
-                                appendLine("Complete analysis module results")
-                                results.forEachIndexed { index, result ->
-                                    val failed = result.startsWith(failurePrefixes[index], ignoreCase = true)
-                                    appendLine("${if (failed) "FAILED" else "COMPLETED"} — ${moduleNames[index]}")
+                            val results = mutableListOf<String>()
+                            try {
+                                modules.forEachIndexed { index, module ->
+                                    completeAnalysisCurrentModule = module.first
+                                    status = "Analyzing ${module.first} (${index + 1}/${modules.size})…"
+                                    val result = try {
+                                        withContext(Dispatchers.IO) { module.second.invoke() }
+                                    } catch (cancelled: CancellationException) {
+                                        throw cancelled
+                                    } catch (error: Exception) {
+                                        "${module.first} failed: ${error.message ?: error.javaClass.simpleName}"
+                                    }
+                                    results.add(result)
+                                    when (index) {
+                                        0 -> dexReport = result
+                                        1 -> resourceReport = result
+                                        2 -> resourceTypeReport = result
+                                        3 -> architectureReport = result
+                                        4 -> manifestReport = result
+                                        5 -> exposureReport = result
+                                        6 -> engineReport = result
+                                        7 -> nativeLibraryReport = result
+                                        8 -> signingCertificateReport = result
+                                        9 -> fullResearchReport = result
+                                    }
+                                    completeAnalysisProgress = index + 1
+                                    fullAnalysisSummary = buildString {
+                                        appendLine("Complete analysis progress: ${index + 1}/${modules.size}")
+                                        results.forEachIndexed { resultIndex, moduleResult ->
+                                            val failed = moduleResult.startsWith("${moduleNames[resultIndex]} failed:")
+                                            appendLine("${if (failed) "FAILED" else "COMPLETED"} — ${moduleNames[resultIndex]}")
+                                        }
+                                        appendLine()
+                                        appendLine("A completed module may still report limited or heuristic findings. Read each detailed report before drawing conclusions.")
+                                    }
                                 }
-                                appendLine()
-                                appendLine("A completed module may still report limited or heuristic findings. Read each detailed report before drawing conclusions.")
+                                status = "Complete analysis finished. Review each module and its limitations below."
+                            } catch (cancelled: CancellationException) {
+                                status = "Analysis cancelled. Completed module results have been kept."
+                                throw cancelled
+                            } finally {
+                                isCompleteAnalysisRunning = false
+                                completeAnalysisCurrentModule = ""
+                                completeAnalysisJob = null
                             }
-                            status = "Complete analysis finished. Review each module and its limitations below."
-                            isCompleteAnalysisRunning = false
                         }
                     }
                 },
@@ -636,8 +649,25 @@ private fun XhubReaDashboard() {
             ) {
                 Text(if (isCompleteAnalysisRunning) "Analysis Running…" else "Run Complete Analysis — All Modules")
             }
+            if (isCompleteAnalysisRunning) {
+                Spacer(Modifier.height(6.dp))
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Text(
+                    "Module ${completeAnalysisProgress}/10 • ${completeAnalysisCurrentModule}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                TextButton(
+                    onClick = {
+                        status = "Stopping analysis after the current operation responds…"
+                        completeAnalysisJob?.cancel()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cancel Analysis")
+                }
+            }
             Text(
-                "Runs the available read-only analysis modules in sequence after an APK is selected. The button is disabled while the analysis is running.",
+                "Runs the available read-only modules one at a time. Progress updates after each module; cancellation takes effect when the current operation responds.",
                 style = MaterialTheme.typography.bodySmall
             )
             Spacer(modifier = Modifier.height(8.dp))
