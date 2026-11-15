@@ -38,7 +38,7 @@ internal object BinaryManifestDecoder {
         val b = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN)
         require(u16(b, 0) == RES_XML_TYPE) { "File binary Android XML format mein nahi hai." }
         val total = u32(b, 4)
-        require(total in 8..data.size) { "XML document size invalid hai." }
+        require(total >= 8L && total <= data.size.toLong()) { "XML document size invalid hai." }
 
         var strings = emptyList<String>()
         val elements = mutableListOf<String>()
@@ -73,7 +73,7 @@ internal object BinaryManifestDecoder {
                     output.appendLine("</$name>")
                 }
             }
-            offset += chunkSize
+            offset += chunkSize.toInt()
         }
         require(strings.isNotEmpty()) { "String pool nahi mila; manifest decode nahi ho saka." }
         require(output.isNotBlank()) { "Koi readable XML element nahi mila." }
@@ -97,8 +97,9 @@ internal object BinaryManifestDecoder {
         val utf8 = (flags and 0x100) != 0
         return (0 until count).map { index ->
             val relative = i32(b, offsetsStart + index * 4)
-            val pos = start + stringsStart + relative
-            require(relative >= 0 && pos >= start && pos < start + size) { "String offset out of range." }
+            val posLong = start.toLong() + stringsStart + relative.toLong()
+            require(relative >= 0 && posLong >= start.toLong() && posLong < (start + size).toLong()) { "String offset out of range." }
+            val pos = posLong.toInt()
             if (utf8) readUtf8(b, pos, start + size) else readUtf16(b, pos, start + size)
         }
     }
