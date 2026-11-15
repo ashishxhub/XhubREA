@@ -1931,7 +1931,7 @@ private fun inventoryApkResources(apkFile: File): String {
     }
 }
 
-private fun inspectDexHeaders(apkFile: File): String = AdvancedDexAnalyzer.inspect(apkFile)
+private fun inspectDexHeaders(apkFile: File): String = DexIntelligenceEngine.inspect(apkFile)
 
 private const val MAX_IMPORTED_APK_BYTES = 512L * 1024L * 1024L
 
