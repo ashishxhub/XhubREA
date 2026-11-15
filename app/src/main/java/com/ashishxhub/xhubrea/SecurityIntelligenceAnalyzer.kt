@@ -52,10 +52,10 @@ internal object SecurityIntelligenceAnalyzer {
             appendLine("This report identifies configuration and code-reference clues; it is not a penetration test.")
             appendLine()
             appendLine("1) APPLICATION SECURITY CONFIGURATION")
-            reportFlag("Debuggable", app["debuggable"], "A true declaration can expose debugging capabilities in applicable build/runtime contexts.")
-            reportFlag("Test-only", app["testOnly"], "A true declaration marks the package as test-only.")
-            reportFlag("Allow backup", app["allowBackup"], "Backup policy is declared here; actual backup exposure depends on Android version, device policy and backup rules.")
-            reportFlag("Cleartext traffic", app["usesCleartextTraffic"], "A true declaration permits cleartext traffic at application level unless more specific platform configuration changes the outcome.")
+            append(reportFlag("Debuggable", app["debuggable"], "A true declaration can expose debugging capabilities in applicable build/runtime contexts."))
+            append(reportFlag("Test-only", app["testOnly"], "A true declaration marks the package as test-only."))
+            append(reportFlag("Allow backup", app["allowBackup"], "Backup policy is declared here; actual backup exposure depends on Android version, device policy and backup rules."))
+            append(reportFlag("Cleartext traffic", app["usesCleartextTraffic"], "A true declaration permits cleartext traffic at application level unless more specific platform configuration changes the outcome."))
             appendLine("Network security config reference: ${app["networkSecurityConfig"] ?: "not resolved"}")
             appendLine("Minimum SDK: $minSdk | Target SDK: $targetSdk")
             appendLine("Evidence: decoded AndroidManifest.xml application / uses-sdk declarations.")
@@ -134,17 +134,6 @@ internal object SecurityIntelligenceAnalyzer {
             result += tag to attrs
         }
         return result
-    }
-
-    private fun hasIntentFilterForComponent(
-        declarations: List<Pair<String, Map<String, String>>>,
-        tag: String,
-        attrs: Map<String, String>
-    ): Boolean {
-        val name = attrs["name"] ?: return false
-        // The decoded report is flattened, so intent-filter nesting cannot be reliably tied
-        // to a particular component. Do not infer implicit export without structural evidence.
-        return false
     }
 
     private fun scanDex(
