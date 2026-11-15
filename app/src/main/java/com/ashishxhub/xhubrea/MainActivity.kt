@@ -37,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -568,6 +569,56 @@ private fun XhubReaDashboard() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             InfoCard(title = "Complete Analysis — Module Status", body = fullAnalysisSummary)
+            Spacer(modifier = Modifier.height(10.dp))
+            SectionHeading("Visual Intelligence", "Numbers ko graph aur app ke flow ke roop mein samjho.")
+            val visualData = listOf(
+                "Permissions" to extractSectionCount(apkReport, "Declared permissions"),
+                "Activities" to extractSectionCount(apkReport, "Activities"),
+                "Services" to extractSectionCount(apkReport, "Services"),
+                "Receivers" to extractSectionCount(apkReport, "Receivers"),
+                "Providers" to extractSectionCount(apkReport, "Providers")
+            )
+            val largestValue = visualData.maxOfOrNull { it.second }?.coerceAtLeast(1) ?: 1
+            Card(
+                modifier = Modifier.fillMaxWidth().then(
+                    if (smoothMotion) Modifier.animateContentSize(animationSpec = tween(300)) else Modifier
+                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("📊 App structure at a glance", fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.height(8.dp))
+                    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect")) {
+                        Text("Graph dekhne ke liye pehle APK choose karo. Abhi koi data available nahi hai.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        visualData.forEach { (label, value) ->
+                            MetricBar(label = label, value = value, maximum = largestValue)
+                            Spacer(Modifier.height(9.dp))
+                        }
+                        Text("Ye bars sirf count dikhate hain. Zyada count ka matlab automatically danger ya better app nahi hota.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    HorizontalDivider()
+                    Spacer(Modifier.height(10.dp))
+                    Text("🧭 App ko samajhne ka flow", fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "① APK select → ② Manifest aur package metadata read → ③ DEX / resources / libraries ki inventory → ④ Components aur technology ke clues → ⑤ Local report",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (showHints) {
+                        Spacer(Modifier.height(8.dp))
+                        Text("💡 Clue: Activity aksar ek screen ya user-facing entry point hoti hai. Service background kaam kar sakti hai. Receiver system/app events sun sakta hai. Provider structured data share karne ke liye hota hai.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = {
@@ -1479,6 +1530,34 @@ private fun reportSection(report: String, heading: String): String {
 
     val content = lines.drop(headerIndex + 1).takeWhile { it.isNotBlank() }
     return content.joinToString("\n").ifBlank { "No entries found." }
+}
+
+private fun extractSectionCount(report: String, heading: String): Int {
+    val match = Regex("""${Regex.escape(heading)}\\s*\\((\\d+)\\)""")
+        .find(report)
+    return match?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+}
+
+@Composable
+private fun MetricBar(label: String, value: Int, maximum: Int) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+            Text(value.toString(), style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        }
+        Spacer(Modifier.height(4.dp))
+        LinearProgressIndicator(
+            progress = { value.toFloat() / maximum.coerceAtLeast(1).toFloat() },
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.secondary,
+            trackColor = MaterialTheme.colorScheme.surface
+        )
+    }
 }
 
 @Composable
