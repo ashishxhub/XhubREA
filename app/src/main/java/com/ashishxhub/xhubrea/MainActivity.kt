@@ -243,6 +243,8 @@ private fun XhubReaDashboard() {
                             appendLine("Application enabled: $appEnabled")
                             appendLine("Debuggable: $debuggable")
                             appendLine("Allow backup flag: $allowBackup")
+                            appendLine("Uses cleartext traffic: ${packageInfo.applicationInfo?.usesCleartextTraffic ?: "Unknown"}")
+                            appendLine("Network security config resource: ${packageInfo.applicationInfo?.networkSecurityConfigRes ?: 0}")
                             appendLine("Test-only flag: $testOnly")
                             appendLine()
                             appendLine("Declared permissions (${permissionList.size})")
@@ -976,6 +978,29 @@ private fun XhubReaDashboard() {
             }
             InfoCard(title = "Component Exposure Review (read-only)", body = exposureReport)
             Spacer(modifier = Modifier.height(12.dp))
+            SectionHeading("APK Security Intelligence", "Security-related manifest clues ko simple language mein samjho.")
+            val securityFindings = remember(apkReport, signingCertificateReport, exposureReport) {
+                buildApkSecurityFindings(apkReport, signingCertificateReport, exposureReport)
+            }
+            securityFindings.forEach { finding ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                        Text(finding.title, fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        Text(finding.status, style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        Text(finding.explanation, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Evidence: ${finding.evidence}", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            InfoCard("Security review limitations", "Ye static metadata-based preliminary review hai, complete security audit nahi. Debuggable/backup/exported/cleartext flags context ke saath interpret karne chahiye. Network security XML ko abhi decode/verify nahi kiya jata. Signing certificate metadata identity clues deta hai, trusted hone ka proof nahi. APK install ya execute nahi hota.")
+            Spacer(modifier = Modifier.height(12.dp))
             SectionHeading("Interactive Component Explorer", "Har component ko search karke uski details samjho.")
             OutlinedTextField(
                 value = componentSearch,
@@ -1598,6 +1623,77 @@ private fun analyzeApkFileTypes(apkFile: File): String {
             append("Only ZIP directory metadata was read; file contents were not opened or extracted.")
         }
     }
+}
+
+private data class ApkSecurityFinding(
+    val title: String,
+    val status: String,
+    val explanation: String,
+    val evidence: String
+)
+
+private fun buildApkSecurityFindings(
+    apkReport: String,
+    certificateReport: String,
+    componentReport: String
+): List<ApkSecurityFinding> {
+    if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect")) {
+        return listOf(ApkSecurityFinding(
+            "APK not inspected", "WAITING",
+            "Pehle APK select karke inspect karo.", "No APK metadata available"
+        ))
+    }
+    fun value(label: String): String =
+        apkReport.lineSequence().firstOrNull { it.startsWith("$label:") }
+            ?.substringAfter(":")?.trim() ?: "Unknown"
+    fun flag(label: String, yes: String, no: String, unknown: String): ApkSecurityFinding {
+        val v = value(label)
+        val positive = v.equals("true", true)
+        val negative = v.equals("false", true)
+        return ApkSecurityFinding(label, when { positive -> yes; negative -> no; else -> "UNKNOWN" },
+            when {
+                positive -> when (label) {
+                    "Debuggable" -> "Debuggable enabled hai. Release app ke liye ise review karna chahiye; development builds mein expected ho sakta hai."
+                    "Allow backup flag" -> "Backup flag enabled hai. Backup behavior Android version, policy aur device configuration par depend karta hai."
+                    "Uses cleartext traffic" -> "Cleartext traffic allowed flag set hai. Plain HTTP use ka risk context aur network security config par depend karta hai."
+                    else -> "Flag true report hua hai; app context mein review karein."
+                }
+                negative -> "Flag false report hua hai; ye ek positive configuration clue hai, full security guarantee nahi."
+                else -> "Is property ki value available nahi, isliye conclusion nahi nikala ja sakta."
+            },
+            "PackageManager ApplicationInfo metadata: $label=$v")
+    }
+    val findings = mutableListOf<ApkSecurityFinding>()
+    findings += flag("Debuggable", "REVIEW", "NOT FLAGGED", "UNKNOWN")
+    findings += flag("Allow backup flag", "REVIEW", "NOT FLAGGED", "UNKNOWN")
+    findings += flag("Uses cleartext traffic", "REVIEW", "NOT FLAGGED", "UNKNOWN")
+    val networkRes = value("Network security config resource")
+    findings += ApkSecurityFinding(
+        "Network security configuration",
+        if (networkRes == "Unknown") "UNKNOWN" else if (networkRes == "0") "NOT REPORTED" else "RESOURCE DECLARED",
+        if (networkRes == "0" || networkRes == "Unknown") "PackageManager ne network security config resource id report nahi kiya. Iska matlab ye nahi ki network secure ya insecure hai."
+        else "Manifest metadata ek network security config resource ka reference deti hai; uski XML policy abhi decode nahi hui.",
+        "networkSecurityConfigRes=$networkRes"
+    )
+    val exported = Regex("""exported=true""", RegexOption.IGNORE_CASE).findAll(componentReport).count()
+    findings += ApkSecurityFinding(
+        "Exported components",
+        if (componentReport.isBlank() || componentReport.contains("not available", true)) "UNKNOWN"
+        else "$exported listed as exported",
+        "Exported component doosri apps se accessible ho sakta hai, lekin actual exposure component permissions, intent filters aur platform rules par depend karta hai.",
+        if (componentReport.isBlank()) "Component review not generated" else "Exported entries counted from current component review"
+    )
+    val certReady = certificateReport.isNotBlank() &&
+        !certificateReport.startsWith("Choose an APK") &&
+        !certificateReport.startsWith("Could not")
+    findings += ApkSecurityFinding(
+        "Signing certificate",
+        if (certReady) "METADATA AVAILABLE" else "NOT ANALYZED",
+        if (certReady) "Certificate report mein signer metadata dekho. Certificate hona trustworthiness ka proof nahi; known publisher se fingerprint compare karna zaroori hai."
+        else "Signing certificate analyzer run karke signer metadata inspect karo.",
+        if (certReady) certificateReport.lineSequence().take(6).joinToString(" | ") else "No certificate report available"
+    )
+    return findings
 }
 
 private data class ApkFileTypeStat(val extension: String, val count: Int, val totalBytes: Long)
