@@ -137,6 +137,7 @@ private fun XhubReaDashboard() {
     var resourceIntelligenceReport by remember { mutableStateOf("Run Complete Analysis to generate the Python resource intelligence report.") }
     var networkIntelligenceReport by remember { mutableStateOf("Run Complete Analysis to generate the network intelligence report.") }
     var privacyIntelligenceReport by remember { mutableStateOf("Run Complete Analysis to generate the privacy intelligence report.") }
+    var humanBehaviourReport by remember { mutableStateOf("Run Complete Analysis to generate the human behaviour intelligence report.") }
     var isPythonAnalysisRunning by remember { mutableStateOf(false) }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
     var componentSearch by remember { mutableStateOf("") }
@@ -578,6 +579,8 @@ private fun XhubReaDashboard() {
             Spacer(Modifier.height(8.dp))
             InfoCard("Privacy Intelligence — Permission & Data Clues", privacyIntelligenceReport)
             Spacer(Modifier.height(8.dp))
+            InfoCard("Human Behaviour Intelligence — Static UI Clues", humanBehaviourReport)
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = {
                     val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
@@ -592,7 +595,7 @@ private fun XhubReaDashboard() {
                             val moduleNames = listOf(
                                 "DEX headers", "Resource inventory", "Resource types", "APK architecture",
                                 "Manifest summary", "Exported components", "App/game technology",
-                                "Native libraries", "Signing certificate metadata", "Research Lab", "Python resource intelligence", "Network intelligence", "Privacy intelligence"
+                                "Native libraries", "Signing certificate metadata", "Research Lab", "Python resource intelligence", "Network intelligence", "Privacy intelligence", "Human behaviour intelligence"
                             )
                             val modules = listOf<Pair<String, () -> String>>(
                                 moduleNames[0] to { inspectDexHeaders(apkFile) },
@@ -616,7 +619,8 @@ private fun XhubReaDashboard() {
                                     formatResourceIntelligenceReport(raw)
                                 },
                                 moduleNames[11] to { NetworkIntelligenceAnalyzer.run(apkFile) },
-                                moduleNames[12] to { PrivacyIntelligenceAnalyzer.run(apkFile, networkIntelligenceReport) }
+                                moduleNames[12] to { PrivacyIntelligenceAnalyzer.run(apkFile, networkIntelligenceReport) },
+                                moduleNames[13] to { HumanBehaviourIntelligenceAnalyzer.run(apkFile, networkIntelligenceReport) }
                             )
                             val results = mutableListOf<String>()
                             try {
@@ -645,6 +649,7 @@ private fun XhubReaDashboard() {
                                         10 -> resourceIntelligenceReport = result
                                         11 -> networkIntelligenceReport = result
                                         12 -> privacyIntelligenceReport = result
+                                        13 -> humanBehaviourReport = result
                                     }
                                     completeAnalysisProgress = index + 1
                                     fullAnalysisSummary = buildString {
@@ -678,7 +683,7 @@ private fun XhubReaDashboard() {
                 Spacer(Modifier.height(6.dp))
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Text(
-                    "Module ${completeAnalysisProgress}/13 • ${completeAnalysisCurrentModule}",
+                    "Module ${completeAnalysisProgress}/14 • ${completeAnalysisCurrentModule}",
                     style = MaterialTheme.typography.bodySmall
                 )
                 TextButton(
