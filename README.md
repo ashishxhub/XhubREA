@@ -1,66 +1,52 @@
 # XhubREA
 
-**Universal AI Reverse Engineering Assistant** — a learning project for understanding apps you own, open-source apps, or apps you have explicit permission to inspect, then building independent alternatives.
+**Universal AI Reverse Engineering Assistant** — a learning-focused Android research assistant for understanding apps and games you own, open-source projects, or files you have explicit permission to inspect, then planning original implementations.
 
-## Current MVP
+## Current implementation
 
 - Native Android app built with Kotlin and Jetpack Compose.
-- Starter dashboard with an app/game project input.
-- Initial sections for app overview, feature mapping and original implementation planning.
-- GitHub Actions workflow that builds a debug APK and uploads it as an artifact.
+- Read-only APK selection and package metadata inspection.
+- Permission and component inventory, including exported-component metadata.
+- DEX header/table metadata inspection (not instruction-level decompilation).
+- APK resource/file inventory, framework/game-engine hints and native-library inventory.
+- Signer certificate metadata (not a complete signature-verification service).
+- Basic two-APK metadata comparison and Research Lab report.
+- Bounded Kotlin binary AndroidManifest decoder.
+- Python APK archive-structure engine, with SHA-256, ZIP-entry inventory, DEX/native/resource counts and path-safety indicators.
+- Chaquopy integration and a dashboard action to invoke the Python engine.
+- GitHub Actions for Android lint/tests/build and Python unit tests.
 
-## Implemented research workspace
+The latest recorded main-branch Android workflow for commit `5c3efb3783a9ffb4f3ad466c8dc923d6c606d406` completed successfully, including lint, unit tests, debug APK packaging and unsigned release bundle packaging. This confirms CI build success, not real-device runtime verification of the Python bridge.
 
-The current Android MVP includes:
-- Local project notes saved on the device.
-- Read-only APK selection and package metadata (name, package, version, SDK, flags and declared permissions).
-- Component inventory for activities, services, receivers and providers.
-- Exported-component review based on manifest metadata.
-- DEX header/table structure inspection (counts and bounds; not a decompiler).
-- APK resource/file inventory, file-type summary and package-layout overview.
-- Heuristic framework/game-engine fingerprints and native-library ABI inventory.
-- APK signer certificate metadata (not a complete signature-verification service).
-- Basic two-APK metadata comparison.
-- Full Research Lab report: DEX presence, UI/resource filename inventory, engine hints, native library inventory, hostname-only network hints, archive size checks and original-project planning notes.
-- Combined report sharing and TXT export.
+## Feature boundaries
 
-All inspection is static and read-only. The app does not install or execute the selected APK.
-
-## Important feature boundaries
-
-This is an early research MVP, not a complete commercial reverse-engineering suite. It does not currently provide instruction-level DEX decompilation, decoded binary Android XML, live runtime tracing, packet capture, API request replay, automatic screen capture, AI-cloud analysis, or a verified generated app build. Some APKs use obfuscation, split packages, dynamic code or formats that this MVP cannot interpret. Reports must be treated as clues, not proof. Test the app on-device with APKs you own or are authorized to inspect.
+XhubREA is an evolving static research MVP, not a complete commercial reverse-engineering suite. It does not execute or install analyzed APKs. It does not currently provide complete instruction-level DEX decompilation, full resource-table decoding, runtime tracing, packet capture, API request replay, or universal interpretation of proprietary app/game logic. Some formats, obfuscated files, split packages and dynamic code may not be fully understood. Findings are evidence-based indicators, not proof.
 
 ## Build the APK on GitHub
 
-1. Open the **Actions** tab in this repository.
+1. Open the repository's **Actions** tab.
 2. Select **Android Debug APK**.
 3. Open the latest successful run.
-4. Under **Artifacts**, download **XhubREA-debug-apk**.
-5. Extract the ZIP and install `app-debug.apk` on your Android device. You may need to allow installation from your file manager.
-
-Every push to `main` also starts the build workflow automatically.
+4. Download the **XhubREA-debug-apk** artifact.
+5. Extract it and install `app-debug.apk` on a compatible Android device.
 
 ## Android compatibility and release status
 
-- Minimum supported Android version: Android 6.0 (API 23).
-- Target SDK: Android 16 (API 36).
-- The app uses the system document picker for APK selection and does not request broad storage access.
-- No network permission is declared in the current manifest; cleartext traffic is explicitly disabled.
-- CI creates a debug APK for testing and an **unsigned** release AAB. The unsigned AAB is not ready for Play Console submission. A production release still needs secure signing, app/device testing, a privacy policy and accurate Play Console declarations.
+- Minimum supported Android version: Android 7.0 (API 24), required by the current Chaquopy configuration.
+- Compile/target SDK: Android 16 (API 36).
+- APK selection uses the system document picker; broad storage access is not requested.
+- The current manifest does not declare network permission and disables cleartext traffic.
+- CI produces a debug APK and an **unsigned** release AAB. The unsigned AAB is not ready for Play Console submission. A production release still requires secure owner-managed signing, device testing, privacy disclosures and accurate store declarations.
 
 ## Build locally
 
-Requirements: JDK 17, Android SDK Platform 36, and Gradle 8.11.1 (Android Gradle Plugin 8.9.1).
+Requirements: JDK 17, Android SDK Platform 36, Gradle 8.11.1, Android Gradle Plugin 8.9.1.
 
 ```bash
-gradle --no-daemon assembleDebug
+gradle --no-daemon lintDebug testDebugUnitTest assembleDebug
 ```
 
-APK output:
-
-```
-app/build/outputs/apk/debug/app-debug.apk
-```
+APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Project structure
 
@@ -70,22 +56,20 @@ app/build/outputs/apk/debug/app-debug.apk
 │   ├── build.gradle.kts
 │   └── src/main/
 │       ├── AndroidManifest.xml
-│       └── java/com/ashishxhub/xhubrea/MainActivity.kt
-├── .github/workflows/android-build.yml
-├── build.gradle.kts
-├── gradle.properties
-└── settings.gradle.kts
+│       └── java/com/ashishxhub/xhubrea/
+├── python/
+│   ├── xhubrea_engine/
+│   └── tests/
+├── .github/workflows/
+├── DEVELOPMENT_TRACKER.md
+├── PROJECT_PLAN.md
+└── README.md
 ```
 
 ## Safety and originality
 
-Use XhubREA only for authorized analysis. Do not use it to bypass DRM, payment or license checks, authentication, anti-cheat, or other access controls; extract private data or secrets; or run unknown APKs. Do not copy proprietary code, branding, or assets. Build original implementations and use assets you have rights to use.
+Use XhubREA only for authorized analysis. Do not bypass DRM, authentication, licensing, payment checks, anti-cheat or other access controls; extract credentials or private data; or execute unknown APKs. Do not copy proprietary code, branding or assets. Analyze locally where possible and obtain explicit consent before any external processing.
 
-## Roadmap
+## Development progress
 
-1. Android project foundation and CI build.
-2. Structured app/project notes.
-3. Authorized APK metadata and manifest viewer.
-4. Manual screen and feature documentation.
-5. Original app specification and implementation workspace.
-6. Optional AI-assisted explanations, with privacy and safety controls.
+See [DEVELOPMENT_TRACKER.md](DEVELOPMENT_TRACKER.md) for implementation status, verification evidence, blockers and the exact next task.
