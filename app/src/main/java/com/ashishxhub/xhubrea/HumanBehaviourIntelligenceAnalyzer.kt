@@ -64,7 +64,7 @@ internal object HumanBehaviourIntelligenceAnalyzer {
                     path.startsWith("res/values") && path.endsWith(".xml")
                 if (!candidate || entry.isDirectory || entry.size <= 0L || entry.size > MAX_XML_FILE_BYTES) continue
                 val remaining = MAX_TOTAL_XML_BYTES - scannedBytes
-                val limit = minOf(MAX_XML_FILE_BYTES.toLong(), remaining).toInt()
+                val limit = minOf(MAX_XML_FILE_BYTES.toLong(), remaining.toLong()).toInt()
                 val bytes = zip.getInputStream(entry).use { input ->
                     val out = ByteArray(limit)
                     var offset = 0
