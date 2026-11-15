@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.asImageBitmap
 import android.content.pm.PackageManager
 import android.os.Build
@@ -132,6 +133,8 @@ private fun XhubReaDashboard() {
     var architectureReport by remember { mutableStateOf("Choose an APK, then inspect its high-level package layout.") }
     var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
+    var componentSearch by remember { mutableStateOf("") }
+    var expandedComponent by remember { mutableStateOf("") }
     var engineReport by remember { mutableStateOf("Choose an APK, then detect likely app/game technology.") }
     var nativeLibraryReport by remember { mutableStateOf("Choose an APK, then analyze native library ABIs and file sizes.") }
     var signingCertificateReport by remember { mutableStateOf("Choose an APK, then inspect its signing certificate metadata.") }
@@ -865,6 +868,77 @@ private fun XhubReaDashboard() {
                 Text("Review exported components")
             }
             InfoCard(title = "Component Exposure Review (read-only)", body = exposureReport)
+            Spacer(modifier = Modifier.height(12.dp))
+            SectionHeading("Interactive Component Explorer", "Har component ko search karke uski details samjho.")
+            OutlinedTextField(
+                value = componentSearch,
+                onValueChange = { componentSearch = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Search name, type or status") },
+                singleLine = true
+            )
+            val componentItems = remember(apkReport) { parseComponentEntries(apkReport) }
+            val filteredComponents = componentItems.filter { item ->
+                "${item.type} ${item.name} ${item.exported} ${item.enabled}"
+                    .contains(componentSearch, ignoreCase = true)
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ArchitectureNode("Total", componentItems.size.toString(), Modifier.weight(1f))
+                ArchitectureNode("Exported", componentItems.count { it.exported }.toString(), Modifier.weight(1f))
+                ArchitectureNode("Not exported", componentItems.count { !it.exported }.toString(), Modifier.weight(1f))
+            }
+            if (filteredComponents.isEmpty()) {
+                InfoCard("No components", if (componentItems.isEmpty()) "Pehle APK inspect karo. Available PackageManager metadata mein component entries nahi mili." else "Is search se koi component match nahi hua.")
+            } else {
+                filteredComponents.forEach { item ->
+                    val expanded = expandedComponent == item.name
+                    Card(
+                        modifier = Modifier.fillMaxWidth().animateContentSize().clickable {
+                            expandedComponent = if (expanded) "" else item.name
+                        },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(item.name.substringAfterLast('.'), fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface)
+                                    Text(item.type, color = MaterialTheme.colorScheme.primary,
+                                        style = MaterialTheme.typography.labelSmall)
+                                }
+                                Text(if (item.exported) "EXPORTED" else "NOT EXPORTED",
+                                    color = if (item.exported) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.labelSmall)
+                            }
+                            if (expanded) {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                                Text("Full name: ${item.name}", color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.bodySmall)
+                                Text("Enabled: ${if (item.enabled) "Yes" else "No"}",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(when (item.type) {
+                                    "Activity" -> "Screen ya user interface ka ek hissa. Example: app ka Home screen."
+                                    "Service" -> "Background kaam karne wala component. Example: music playback service."
+                                    "Receiver" -> "System ya app event receive karta hai. Example: battery ya boot event."
+                                    else -> "Structured data provide karne wala component. Example: contacts-style data provider."
+                                }, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall)
+                                Text(if (item.exported)
+                                    "Other apps ya Android system ise address kar sakte hain, lekin permissions aur configuration access ko limit kar sakte hain. Exported hona apne aap vulnerability nahi hai."
+                                else "Is metadata ke mutabik component doosri apps ke liye exported nahi hai.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall)
+                            } else {
+                                Text("Tap for details", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+            if (componentItems.isNotEmpty()) {
+                InfoCard("Coverage note", "Base APK metadata report har type ke pehle 20 components tak limited hai. Isliye yahan listed count complete APK count nahi bhi ho sakta. Exported status security flaw ka proof nahi hota.")
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
             Button(
@@ -1659,6 +1733,40 @@ private fun summarizeManifest(report: String): String {
         }
         appendLine()
         append("This is a summary of metadata exposed by Android PackageManager, not a raw binary XML decode. Exported status alone does not establish a vulnerability.")
+    }
+}
+
+private data class ComponentEntry(
+    val type: String,
+    val name: String,
+    val exported: Boolean,
+    val enabled: Boolean
+)
+
+private fun parseComponentEntries(report: String): List<ComponentEntry> {
+    if (report == "No APK inspected yet." || report.startsWith("Could not inspect")) return emptyList()
+    val sections = listOf(
+        "Activities" to "Activity",
+        "Services" to "Service",
+        "Receivers" to "Receiver",
+        "Providers" to "Provider"
+    )
+    return sections.flatMap { (heading, type) ->
+        val lines = report.lines()
+        val start = lines.indexOfFirst { it.startsWith("$heading (") }
+        if (start < 0) emptyList() else {
+            lines.drop(start + 1).takeWhile { it.isNotBlank() }
+                .filter { it != "None found" }
+                .mapNotNull { line ->
+                    val name = line.substringBefore(" | ").trim()
+                    if (name.isBlank()) null else ComponentEntry(
+                        type = type,
+                        name = name,
+                        exported = Regex("""exported=true""", RegexOption.IGNORE_CASE).containsMatchIn(line),
+                        enabled = Regex("""enabled=true""", RegexOption.IGNORE_CASE).containsMatchIn(line)
+                    )
+                }
+        }
     }
 }
 
