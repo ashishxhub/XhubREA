@@ -135,6 +135,7 @@ private fun XhubReaDashboard() {
     var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
     var componentSearch by remember { mutableStateOf("") }
+    var permissionSearch by remember { mutableStateOf("") }
     var expandedComponent by remember { mutableStateOf("") }
     var engineReport by remember { mutableStateOf("Choose an APK, then detect likely app/game technology.") }
     var nativeLibraryReport by remember { mutableStateOf("Choose an APK, then analyze native library ABIs and file sizes.") }
@@ -1149,6 +1150,64 @@ private fun XhubReaDashboard() {
             InfoCard(title = "Content providers", body = reportSection(apkReport, "Providers"))
             InfoCard(title = "Declared permissions", body = reportSection(apkReport, "Declared permissions"))
             InfoCard(title = "Permission risk overview", body = reportSection(apkReport, "Permission analysis"))
+            Spacer(modifier = Modifier.height(12.dp))
+            SectionHeading("Permission Intelligence", "App ne kaunsi Android permissions declare ki hain?")
+            OutlinedTextField(
+                value = permissionSearch,
+                onValueChange = { permissionSearch = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Search permission name or category") },
+                singleLine = true
+            )
+            val permissionEntries = remember(apkReport) { parsePermissionEntries(apkReport) }
+            val filteredPermissions = permissionEntries.filter {
+                "${it.name} ${it.category}".contains(permissionSearch, ignoreCase = true)
+            }
+            val permissionCategories = listOf(
+                "Normal", "Dangerous (runtime-sensitive)", "Signature (restricted)",
+                "Other / special", "Unknown / not available"
+            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                ArchitectureNode("Listed", permissionEntries.size.toString(), Modifier.weight(1f))
+                ArchitectureNode("Dangerous", permissionEntries.count { it.category.contains("Dangerous") }.toString(), Modifier.weight(1f))
+                ArchitectureNode("Signature", permissionEntries.count { it.category.contains("Signature") }.toString(), Modifier.weight(1f))
+            }
+            permissionCategories.forEach { category ->
+                val count = permissionEntries.count { it.category == category }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(category, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        Text(count.toString(), style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary)
+                    }
+                    LinearProgressIndicator(
+                        progress = { if (permissionEntries.isEmpty()) 0f else count.toFloat() / permissionEntries.size },
+                        modifier = Modifier.fillMaxWidth().height(6.dp)
+                    )
+                }
+            }
+            if (filteredPermissions.isEmpty()) {
+                InfoCard("Permission list", if (permissionEntries.isEmpty()) "Pehle APK inspect karo. Ya report mein permission details available nahi hain." else "Search se koi permission match nahi hui.")
+            } else {
+                filteredPermissions.forEach { permission ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().animateContentSize(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                            Text(permission.name, fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Text(permission.category, color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelSmall)
+                            Text(permissionExplanation(permission.name, permission.category),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+            InfoCard("How to read this", "Dangerous ka matlab Android permission group runtime approval maang sakta hai; ye app malicious hone ka proof nahi. Signature permissions aam taur par same certificate se signed apps tak restricted hoti hain. Normal permissions lower-risk protection level hoti hain, lekin context phir bhi important hai. Ye report declared permissions dikhati hai, actual usage nahi.")
             Text(
                 "Permission categories describe Android's declared protection level. They do not prove how an app uses a permission or whether its behavior is safe.",
                 style = MaterialTheme.typography.bodySmall,
@@ -1787,6 +1846,37 @@ private fun summarizeManifest(report: String): String {
         appendLine()
         append("This is a summary of metadata exposed by Android PackageManager, not a raw binary XML decode. Exported status alone does not establish a vulnerability.")
     }
+}
+
+private data class PermissionEntry(val name: String, val category: String)
+
+private fun parsePermissionEntries(report: String): List<PermissionEntry> {
+    if (report == "No APK inspected yet." || report.startsWith("Could not inspect")) return emptyList()
+    val lines = report.lines()
+    val start = lines.indexOfFirst { it.startsWith("Permission analysis (") }
+    if (start < 0) return emptyList()
+    return lines.drop(start + 1).takeWhile { it.isNotBlank() }
+        .filter { it.contains(" — ") }
+        .map { line ->
+            val parts = line.split(" — ", limit = 2)
+            PermissionEntry(parts[0].trim(), parts.getOrElse(1) { "Unknown / not available" }.trim())
+        }
+}
+
+private fun permissionExplanation(name: String, category: String): String {
+    val purpose = when {
+        name.contains("CAMERA", true) -> "Camera access se app photo ya video capture kar sakti hai, agar runtime/device conditions allow karein."
+        name.contains("RECORD_AUDIO", true) -> "Microphone access audio record karne ya voice features ke liye use ho sakta hai."
+        name.contains("LOCATION", true) -> "Location permission approximate ya precise location features ke liye ho sakti hai."
+        name.contains("CONTACTS", true) -> "Contacts permission address-book information read ya manage karne ke liye ho sakti hai."
+        name.contains("READ_SMS", true) || name.contains("RECEIVE_SMS", true) -> "SMS permission messages read ya receive karne se related hai."
+        name.contains("READ_MEDIA", true) || name.contains("READ_EXTERNAL_STORAGE", true) -> "Media/storage permission photos, videos ya shared files access karne se related hai."
+        name.contains("BLUETOOTH", true) -> "Bluetooth permission nearby devices se connection/discovery features ke liye ho sakti hai."
+        name.contains("INTERNET", true) -> "Internet permission network connections allow karti hai; isse ye prove nahi hota ki data kis server ko bheja jata hai."
+        name.contains("NOTIFICATIONS", true) || name.contains("POST_NOTIFICATIONS", true) -> "Notification permission app notifications dikhane se related hai."
+        else -> "Permission ka exact use app ke code aur runtime behaviour par depend karta hai. Sirf naam se actual use confirm nahi hota."
+    }
+    return "$purpose Protection level: $category."
 }
 
 private data class DexSummary(
