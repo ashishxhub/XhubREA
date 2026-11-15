@@ -138,6 +138,7 @@ private fun XhubReaDashboard() {
     var networkIntelligenceReport by remember { mutableStateOf("Run Complete Analysis to generate the network intelligence report.") }
     var privacyIntelligenceReport by remember { mutableStateOf("Run Complete Analysis to generate the privacy intelligence report.") }
     var humanBehaviourReport by remember { mutableStateOf("Run Complete Analysis to generate the human behaviour intelligence report.") }
+    var securityIntelligenceReport by remember { mutableStateOf("Run Complete Analysis to generate the security intelligence report.") }
     var isPythonAnalysisRunning by remember { mutableStateOf(false) }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
     var componentSearch by remember { mutableStateOf("") }
@@ -581,6 +582,8 @@ private fun XhubReaDashboard() {
             Spacer(Modifier.height(8.dp))
             InfoCard("Human Behaviour Intelligence — Static UI Clues", humanBehaviourReport)
             Spacer(Modifier.height(8.dp))
+            InfoCard("Security Intelligence — Configuration & Code Clues", securityIntelligenceReport)
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = {
                     val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
@@ -595,7 +598,7 @@ private fun XhubReaDashboard() {
                             val moduleNames = listOf(
                                 "DEX headers", "Resource inventory", "Resource types", "APK architecture",
                                 "Manifest summary", "Exported components", "App/game technology",
-                                "Native libraries", "Signing certificate metadata", "Research Lab", "Python resource intelligence", "Network intelligence", "Privacy intelligence", "Human behaviour intelligence"
+                                "Native libraries", "Signing certificate metadata", "Research Lab", "Python resource intelligence", "Network intelligence", "Privacy intelligence", "Human behaviour intelligence", "Security intelligence"
                             )
                             val modules = listOf<Pair<String, () -> String>>(
                                 moduleNames[0] to { inspectDexHeaders(apkFile) },
@@ -620,7 +623,8 @@ private fun XhubReaDashboard() {
                                 },
                                 moduleNames[11] to { NetworkIntelligenceAnalyzer.run(apkFile) },
                                 moduleNames[12] to { PrivacyIntelligenceAnalyzer.run(apkFile, networkIntelligenceReport) },
-                                moduleNames[13] to { HumanBehaviourIntelligenceAnalyzer.run(apkFile, networkIntelligenceReport) }
+                                moduleNames[13] to { HumanBehaviourIntelligenceAnalyzer.run(apkFile, networkIntelligenceReport) },
+                                moduleNames[14] to { SecurityIntelligenceAnalyzer.run(apkFile) }
                             )
                             val results = mutableListOf<String>()
                             try {
@@ -650,6 +654,7 @@ private fun XhubReaDashboard() {
                                         11 -> networkIntelligenceReport = result
                                         12 -> privacyIntelligenceReport = result
                                         13 -> humanBehaviourReport = result
+                                        14 -> securityIntelligenceReport = result
                                     }
                                     completeAnalysisProgress = index + 1
                                     fullAnalysisSummary = buildString {
@@ -683,7 +688,7 @@ private fun XhubReaDashboard() {
                 Spacer(Modifier.height(6.dp))
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Text(
-                    "Module ${completeAnalysisProgress}/14 • ${completeAnalysisCurrentModule}",
+                    "Module ${completeAnalysisProgress}/15 • ${completeAnalysisCurrentModule}",
                     style = MaterialTheme.typography.bodySmall
                 )
                 TextButton(
