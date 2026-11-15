@@ -1706,7 +1706,9 @@ private fun inspectApkForComparison(
     try {
         copyUriToFileBounded(context, uri, apkFile)
 
-        val flags = PackageManager.GET_PERMISSIONS
+        val flags = PackageManager.GET_PERMISSIONS or
+            PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or
+            PackageManager.GET_RECEIVERS or PackageManager.GET_PROVIDERS
         val info = context.packageManager.getPackageArchiveInfo(apkFile.absolutePath, flags)
             ?: error("This file is not a readable Android APK.")
         val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -1734,7 +1736,20 @@ private fun inspectApkForComparison(
             appendLine("APK file size: ${apkFile.length()}")
             appendLine("SHA-256: $sha256")
             appendLine("Permissions: ${permissions.size}")
-            appendLine(permissions.sorted().joinToString(","))
+            appendLine("Declared permissions (${permissions.size})")
+            appendLine(permissions.sorted().joinToString("\n").ifBlank { "None declared" })
+            appendLine()
+            appendLine("Activities (${info.activities?.size ?: 0})")
+            appendLine(info.activities.orEmpty().mapNotNull { it.name }.sorted().joinToString("\n").ifBlank { "None found" })
+            appendLine()
+            appendLine("Services (${info.services?.size ?: 0})")
+            appendLine(info.services.orEmpty().mapNotNull { it.name }.sorted().joinToString("\n").ifBlank { "None found" })
+            appendLine()
+            appendLine("Receivers (${info.receivers?.size ?: 0})")
+            appendLine(info.receivers.orEmpty().mapNotNull { it.name }.sorted().joinToString("\n").ifBlank { "None found" })
+            appendLine()
+            appendLine("Providers (${info.providers?.size ?: 0})")
+            appendLine(info.providers.orEmpty().mapNotNull { it.name }.sorted().joinToString("\n").ifBlank { "None found" })
         }
     } finally {
         apkFile.delete()
@@ -1743,40 +1758,62 @@ private fun inspectApkForComparison(
 
 private fun compareApkReports(first: String, second: String): String {
     val keys = listOf(
-        "App name:",
-        "Package:",
-        "Version name:",
-        "Version code:",
-        "Minimum SDK:",
-        "Target SDK:",
-        "APK file size:",
-        "SHA-256:",
-        "Permissions:"
+        "App name:", "Package:", "Version name:", "Version code:",
+        "Minimum SDK:", "Target SDK:", "APK file size:", "SHA-256:"
     )
     val firstLines = first.lines()
     val secondLines = second.lines()
+
+    fun section(reportLines: List<String>, title: String): Set<String> {
+        val index = reportLines.indexOfFirst { it.startsWith("$title (") }
+        if (index < 0) return emptySet()
+        return reportLines.drop(index + 1).takeWhile { it.isNotBlank() }
+            .filter { it != "None found" && it != "None declared" }
+            .map { it.trim() }.toSet()
+    }
+
+    fun value(lines: List<String>, key: String): String =
+        lines.firstOrNull { it.startsWith(key) }?.substringAfter(key)?.trim() ?: "Not available"
+
+    val firstPackage = value(firstLines, "Package:")
+    val secondPackage = value(secondLines, "Package:")
+    val samePackage = firstPackage == secondPackage && firstPackage != "Not available"
     return buildString {
-        appendLine("Comparison (Primary APK vs Second APK)")
+        appendLine("APK Comparison Intelligence — Primary vs Second")
+        appendLine("Package identity: " + if (samePackage) "SAME PACKAGE" else "DIFFERENT / UNCONFIRMED PACKAGE")
+        if (!samePackage) appendLine("Note: These may be two different apps, not two versions of the same app.")
         keys.forEach { key ->
-            val a = firstLines.firstOrNull { it.startsWith(key) }?.substringAfter(key)?.trim() ?: "Not available"
-            val b = secondLines.firstOrNull { it.startsWith(key) }?.substringAfter(key)?.trim() ?: "Not available"
+            val a = value(firstLines, key)
+            val b = value(secondLines, key)
             appendLine()
             appendLine(key.removeSuffix(":"))
             appendLine("Primary: $a")
             appendLine("Second: $b")
             appendLine(if (a == b) "Result: SAME" else "Result: DIFFERENT")
         }
-        val firstPermissions = firstLines.dropWhile { !it.startsWith("Declared permissions (") }
-            .drop(1).takeWhile { it.isNotBlank() }.filter { it != "None declared" }.toSet()
-        val secondPermissionsLine = secondLines.firstOrNull { it.startsWith("Permissions:") }
-        val secondPermissions = secondPermissionsLine?.substringAfter(":")?.split(",")
-            ?.filter { it.isNotBlank() }?.toSet().orEmpty()
-        val added = secondPermissions - firstPermissions
-        val removed = firstPermissions - secondPermissions
+
+        val firstPermissions = section(firstLines, "Declared permissions")
+        val secondPermissions = section(secondLines, "Declared permissions")
         appendLine()
-        appendLine("Permission differences")
-        appendLine("Added in second APK: ${added.joinToString().ifBlank { "None" }}")
-        appendLine("Not present in second APK: ${removed.joinToString().ifBlank { "None" }}")
+        appendLine("PERMISSION CHANGES (Primary → Second)")
+        appendLine("Added in second: ${(secondPermissions - firstPermissions).sorted().joinToString().ifBlank { "None" }}")
+        appendLine("Removed in second: ${(firstPermissions - secondPermissions).sorted().joinToString().ifBlank { "None" }}")
+        appendLine("Primary listed: ${firstPermissions.size}; Second listed: ${secondPermissions.size}")
+
+        listOf("Activities", "Services", "Receivers", "Providers").forEach { title ->
+            val before = section(firstLines, title)
+            val after = section(secondLines, title)
+            appendLine()
+            appendLine("$title changes")
+            appendLine("Primary listed: ${before.size}; Second listed: ${after.size}")
+            appendLine("Added in second: ${(after - before).sorted().joinToString().ifBlank { "None" }}")
+            appendLine("Removed in second: ${(before - after).sorted().joinToString().ifBlank { "None" }}")
+        }
+        appendLine()
+        appendLine("Interpretation guide")
+        appendLine("A difference means metadata changed; it does not by itself indicate a security problem or prove a feature is used.")
+        appendLine("Coverage note: the primary APK report may list only a limited number of components/permissions. Differences are limited to the entries available in each report.")
+        appendLine("Both APKs were inspected as static metadata only; neither was installed or executed.")
     }
 }
 
