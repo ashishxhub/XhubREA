@@ -134,6 +134,7 @@ private fun XhubReaDashboard() {
     var resourceExplorerStatus by remember { mutableStateOf("Load an APK resource preview to explore its images and file categories.") }
     var architectureReport by remember { mutableStateOf("Choose an APK, then inspect its high-level package layout.") }
     var manifestReport by remember { mutableStateOf("Choose an APK, then generate a manifest summary.") }
+    var binaryManifestReport by remember { mutableStateOf("Choose an APK, then decode its binary AndroidManifest.xml.") }
     var exposureReport by remember { mutableStateOf("Choose an APK, then review exported components.") }
     var componentSearch by remember { mutableStateOf("") }
     var permissionSearch by remember { mutableStateOf("") }
@@ -505,6 +506,27 @@ private fun XhubReaDashboard() {
                 Text("Choose APK file")
             }
             Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
+                    if (!apkFile.exists()) {
+                        status = "Pehle APK select karo."
+                    } else {
+                        status = "Binary manifest decode ho raha hai…"
+                        scope.launch {
+                            binaryManifestReport = withContext(Dispatchers.IO) {
+                                runCatching { BinaryManifestDecoder.decodeApk(apkFile) }
+                                    .getOrElse { "Decode nahi ho saka: ${it.message ?: "Unknown error"}" }
+                            }
+                            status = "Binary manifest decoding finished."
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Decode Binary AndroidManifest") }
+            Spacer(Modifier.height(8.dp))
+            InfoCard("Binary Manifest Decoder", binaryManifestReport)
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = {
                     val apkFile = File(context.cacheDir, "xhubrea_inspection.apk")
