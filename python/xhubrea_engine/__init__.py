@@ -16,7 +16,8 @@ from pathlib import PurePosixPath
 MAX_APK_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 100_000
 MAX_TOTAL_UNCOMPRESSED = 2 * 1024 * 1024 * 1024
-DEX_NAME = re.compile(r"classes(?:[2-9][0-9]*)?\.dex\Z|classes\.dex\Z")
+DEX_NAME = re.compile(r"classes(?:[2-9][0-9]*)?\.dex\\Z|classes\.dex\\Z")
+MAX_RESOURCE_REPORT_ITEMS = 30
 
 
 def _sha256_file(path: str) -> str:
@@ -25,6 +26,81 @@ def _sha256_file(path: str) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _resource_category(name: str) -> str | None:
+    """Classify a resource path using its archive location, without reading content."""
+    normalized = name.replace("\\\\", "/")
+    if normalized.startswith("assets/"):
+        return "assets"
+    if not normalized.startswith("res/"):
+        return None
+
+    parts = PurePosixPath(normalized).parts
+    folder = parts[1].split("-", 1)[0].lower() if len(parts) > 1 else ""
+    known = {
+        "layout": "layout_xml",
+        "drawable": "drawable",
+        "mipmap": "mipmap",
+        "values": "values_xml",
+        "xml": "xml",
+        "raw": "raw",
+        "anim": "animation",
+        "animator": "animator",
+        "color": "color",
+        "font": "font",
+        "menu": "menu",
+        "navigation": "navigation",
+        "transition": "transition",
+        "interpolator": "interpolator",
+    }
+    return known.get(folder, "other_res")
+
+
+def _resource_inventory(infos: list[zipfile.ZipInfo]) -> dict:
+    """Return compact, bounded resource metadata; never extracts or decodes files."""
+    category_counts: Counter[str] = Counter()
+    extension_counts: Counter[str] = Counter()
+    resource_items: list[dict] = []
+
+    for item in infos:
+        if item.is_dir():
+            continue
+        category = _resource_category(item.filename)
+        if category is None:
+            continue
+
+        category_counts[category] += 1
+        suffix = PurePosixPath(item.filename.replace("\\\\", "/")).suffix.lower()
+        extension_counts[suffix if suffix else "[no_extension]"] += 1
+        resource_items.append({
+            "path": item.filename[:240],
+            "category": category,
+            "size_bytes": max(0, item.file_size),
+            "compressed_size_bytes": max(0, item.compress_size),
+        })
+
+    largest = sorted(
+        resource_items,
+        key=lambda row: row["size_bytes"],
+        reverse=True,
+    )[:MAX_RESOURCE_REPORT_ITEMS]
+
+    return {
+        "total_files": len(resource_items),
+        "category_counts": dict(sorted(category_counts.items())),
+        "extension_counts": dict(
+            sorted(extension_counts.items(), key=lambda pair: (-pair[1], pair[0]))[:20]
+        ),
+        "largest_files": largest,
+        "report_item_limit": MAX_RESOURCE_REPORT_ITEMS,
+        "mode": "path_and_size_metadata_only",
+        "notes": [
+            "Classification is based on archive path and filename extension only.",
+            "Resource file contents are not extracted, decoded, or executed.",
+            "Android resource IDs and compiled resources.arsc values are not decoded by this module.",
+        ],
+    }
 
 
 def analyze_apk(path: str) -> dict:
@@ -59,7 +135,7 @@ def analyze_apk(path: str) -> dict:
             for item in infos:
                 name = item.filename
                 names.append(name)
-                normalized = name.replace("\\", "/")
+                normalized = name.replace("\\\\", "/")
                 if normalized in seen_names:
                     duplicate_names.append(name[:240])
                 else:
@@ -81,7 +157,7 @@ def analyze_apk(path: str) -> dict:
             manifest_present = "AndroidManifest.xml" in names
             return {
                 "engine": "XhubREA Python APK Engine",
-                "engine_version": "0.2.0",
+                "engine_version": "0.3.0",
                 "mode": "read_only",
                 "file_name": os.path.basename(path),
                 "file_size_bytes": size,
@@ -104,6 +180,7 @@ def analyze_apk(path: str) -> dict:
                 },
                 "resources": {"count": resource_files},
                 "assets": {"count": asset_files},
+                "resource_intelligence": _resource_inventory(infos),
                 "top_level_entry_counts": dict(sorted(counts.items())),
                 "path_safety_warnings": suspicious_names[:100],
                 "duplicate_entry_warnings": duplicate_names[:100],
@@ -114,6 +191,7 @@ def analyze_apk(path: str) -> dict:
                     "Manifest format hint hai; binary XML ka full decode alag module karta hai.",
                     "Path warnings suspicious archive names dikhati hain; files extract nahi ki jaati.",
                     "Duplicate entry warnings ek hi normalized path ke multiple records dikhati hain.",
+                    "Resource intelligence archive paths aur declared sizes par based hai; content decode nahi karta.",
                 ],
             }
     except zipfile.BadZipFile as exc:
