@@ -62,10 +62,10 @@ internal object BinaryManifestDecoder {
                 "Manifest chunk boundary invalid hai."
             }
             when (type) {
-                RES_STRING_POOL_TYPE -> strings = parseStringPool(b, offset, headerSize, chunkSize)
+                RES_STRING_POOL_TYPE -> strings = parseStringPool(b, offset, headerSize, chunkSize.toInt())
                 RES_XML_RESOURCE_MAP_TYPE -> Unit
                 RES_XML_START_ELEMENT_TYPE -> {
-                    val node = parseStartElement(b, offset, headerSize, chunkSize, strings)
+                    val node = parseStartElement(b, offset, headerSize, chunkSize.toInt(), strings)
                     elements.add(node.first)
                     output.appendLine("<${node.first}>")
                     node.second.forEach { (name, value) ->
