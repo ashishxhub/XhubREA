@@ -38,9 +38,10 @@ internal object SecurityIntelligenceAnalyzer {
         val customPermissions = declarations.filter { it.first == "permission" || it.first == "permission-tree" }
         val sdk = declarations.firstOrNull { it.first == "uses-sdk" }?.second.orEmpty()
 
-        val exported = components.filter { (tag, attrs) ->
-            attrs["exported"]?.equals("true", ignoreCase = true) == true ||
-                (attrs["exported"] == null && hasIntentFilterForComponent(declarations, tag, attrs))
+        // The flattened manifest report does not preserve intent-filter nesting,
+        // so only explicit exported=true declarations are counted as confirmed.
+        val exported = components.filter { (_, attrs) ->
+            attrs["exported"]?.equals("true", ignoreCase = true) == true
         }
         val dexFindings = scanDex(entries, apk)
         val targetSdk = sdk["targetSdkVersion"] ?: "not resolved"
@@ -63,14 +64,15 @@ internal object SecurityIntelligenceAnalyzer {
             appendLine("2) EXPORTED COMPONENT REVIEW")
             appendLine("Components declared: ${components.size}")
             appendLine("Components explicitly marked exported=true: ${components.count { it.second["exported"]?.equals("true", true) == true }}")
-            appendLine("Potentially externally reachable by legacy intent-filter default: ${exported.size}")
+            appendLine("Explicitly exported components requiring review: ${exported.size}")
+            appendLine("Legacy implicit-export status: UNKNOWN (intent-filter nesting is not preserved by the current manifest report).")
             if (exported.isEmpty()) appendLine("No exported or legacy-default candidate components were identified by this parser.")
             exported.take(MAX_COMPONENTS_REPORTED).forEach { (tag, attrs) ->
                 appendLine("• $tag ${attrs["name"] ?: "(name unresolved)"} | exported=${attrs["exported"] ?: "implicit/unknown"} | permission=${attrs["permission"] ?: "none declared"}")
                 appendLine("  Review whether the component is intended to be externally reachable and whether caller permissions are appropriate.")
             }
             if (exported.size > MAX_COMPONENTS_REPORTED) appendLine("Additional components omitted from display: ${exported.size - MAX_COMPONENTS_REPORTED}")
-            appendLine("Caution: this parser's legacy implicit-export estimate is approximate; Android platform and target-SDK rules matter.")
+            appendLine("Caution: this is a static declaration review. Actual reachability also depends on Android version, target SDK, permissions and runtime behavior.")
             appendLine()
             appendLine("3) CUSTOM PERMISSION PROTECTION")
             if (customPermissions.isEmpty()) appendLine("No custom permission declarations were decoded.")
