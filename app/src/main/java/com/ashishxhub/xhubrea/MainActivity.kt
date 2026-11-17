@@ -327,6 +327,71 @@ private fun XhubReaDashboard() {
         }
     }
 
+    if (showSettings) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 44.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF17365F))
+                ) {
+                    Column(Modifier.padding(22.dp)) {
+                        Text("XhubREA", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Spacer(Modifier.height(4.dp))
+                        Text("Personalize your research workspace", color = Color(0xFFDCE7FF))
+                        Spacer(Modifier.height(12.dp))
+                        Text("PREFERENCES", style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFBBD4FF), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(onClick = { showSettings = false }, modifier = Modifier.weight(1f)) {
+                        Text("⌂ Home")
+                    }
+                    Button(onClick = { showSettings = true }, modifier = Modifier.weight(1f), enabled = false) {
+                        Text("⚙ Settings")
+                    }
+                }
+            }
+            item {
+                SectionHeading("Settings", "App ko apne hisaab se set karein.")
+                PreferenceRow("Simple explanation", "Technical baat ko chhote, aasaan steps mein samjhao.", simpleExplain) {
+                    simpleExplain = it
+                    preferences.edit().putBoolean("simple_explain", it).apply()
+                }
+                PreferenceRow("Hints & clues", "Har result ke saath next clue aur kya check karein dikhaye.", showHints) {
+                    showHints = it
+                    preferences.edit().putBoolean("show_hints", it).apply()
+                }
+                PreferenceRow("Smooth motion", "Cards aur sections ke expand/collapse par smooth animation.", smoothMotion) {
+                    smoothMotion = it
+                    preferences.edit().putBoolean("smooth_motion", it).apply()
+                }
+                PreferenceRow("High refresh preference", "Device support kare to highest refresh rate request kare. Battery/heat ke kaaran Android ise badal sakta hai.", requestHighRefresh) {
+                    requestHighRefresh = it
+                    preferences.edit().putBoolean("high_refresh", it).apply()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        val rate = if (it) activity?.windowManager?.defaultDisplay?.supportedModes?.maxOfOrNull { mode -> mode.refreshRate } ?: 60f else 60f
+                        activity?.window?.let { appWindow ->
+                            appWindow.attributes = appWindow.attributes.apply { preferredRefreshRate = rate }
+                        }
+                    }
+                }
+                InfoCard(
+                    "Refresh-rate note",
+                    "120 Hz ka matlab screen ek second mein 120 baar tak update ho sakti hai. XhubREA highest supported mode request karta hai, lekin final choice phone, battery saver, heat aur Android ke control mein hoti hai. Isliye 120 Hz har phone par guarantee nahi hai."
+                )
+            }
+        }
+        return
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 44.dp),
