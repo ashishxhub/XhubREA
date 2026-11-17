@@ -17,6 +17,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 
 from xhubrea_engine.antigravity_adapter import ask_antigravity
+from xhubrea_engine.research_workflow import build_research_prompt
 
 app = FastAPI(
     title="XhubREA Research API",
@@ -41,6 +42,23 @@ class AgentChatRequest(BaseModel):
 
 class AgentChatResponse(BaseModel):
     answer: str
+
+
+class EvidenceFinding(BaseModel):
+    evidence_id: str = Field(min_length=1, max_length=80)
+    source: str = Field(min_length=1, max_length=500)
+    observation: str = Field(min_length=1, max_length=500)
+    confidence: str = Field(min_length=1, max_length=40)
+
+
+class ResearchAnalyzeRequest(BaseModel):
+    project_name: str = Field(min_length=1, max_length=120)
+    objective: str = Field(min_length=1, max_length=500)
+    findings: list[EvidenceFinding] = Field(min_length=1, max_length=12)
+
+
+class ResearchAnalyzeResponse(BaseModel):
+    report: str
 
 
 def require_api_token(authorization: Annotated[str | None, Header()] = None) -> None:
@@ -100,3 +118,32 @@ async def agent_chat(payload: AgentChatRequest) -> AgentChatResponse:
     except Exception as exc:  # SDK/network failures are deliberately sanitized.
         raise HTTPException(status_code=502, detail="AI agent request failed.") from exc
     return AgentChatResponse(answer=answer)
+
+
+@app.post(
+    "/v1/research/analyze",
+    response_model=ResearchAnalyzeResponse,
+    dependencies=[Depends(require_api_token)],
+)
+async def research_analyze(payload: ResearchAnalyzeRequest) -> ResearchAnalyzeResponse:
+    """Turn supplied authorized observations into a structured research report."""
+    _enforce_rate_limit()
+    try:
+        prompt = build_research_prompt(
+            payload.project_name,
+            payload.objective,
+            [finding.model_dump() for finding in payload.findings],
+        )
+        report = await ask_antigravity(prompt)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        message = str(exc).lower()
+        if "disabled" in message:
+            raise HTTPException(status_code=503, detail="AI agent is disabled.") from exc
+        if "not configured" in message or "not installed" in message:
+            raise HTTPException(status_code=503, detail="AI agent is not configured.") from exc
+        raise HTTPException(status_code=502, detail="AI agent request failed.") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="AI agent request failed.") from exc
+    return ResearchAnalyzeResponse(report=report)
