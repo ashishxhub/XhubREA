@@ -65,7 +65,7 @@ export XHUBREA_ANTIGRAVITY_ENABLED=1
 uvicorn xhubrea_engine.api:app --app-dir python --host 127.0.0.1 --port 8000
 ```
 
-The API exposes `GET /health`, authenticated `POST /v1/agent/chat`, and authenticated `POST /v1/research/analyze`.
+The API exposes `GET /health`, authenticated `POST /v1/agent/chat`, and authenticated `POST /v1/research/analyze`, and deterministic `POST /v1/research/structure`.
 Send `Authorization: Bearer <XHUBREA_API_TOKEN>` and JSON `{\"prompt\":\"...\"}`.
 The chat prompt is limited to 8,000 characters. Research analysis accepts 1–12 supplied
 evidence items with bounded fields and builds an evidence-grounded report prompt. The
