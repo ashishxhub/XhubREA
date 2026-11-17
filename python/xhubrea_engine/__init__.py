@@ -16,7 +16,7 @@ from pathlib import PurePosixPath
 MAX_APK_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 100_000
 MAX_TOTAL_UNCOMPRESSED = 2 * 1024 * 1024 * 1024
-DEX_NAME = re.compile(r"classes(?:[2-9][0-9]*)?\.dex\Z|classes\.dex\Z")
+DEX_NAME = re.compile(r"classes(?:[2-9]|[1-9][0-9]+)?\.dex\Z")
 MAX_RESOURCE_REPORT_ITEMS = 30
 
 
@@ -141,7 +141,11 @@ def analyze_apk(path: str) -> dict:
                 else:
                     seen_names.add(normalized)
                 parts = PurePosixPath(normalized).parts
-                if normalized.startswith("/") or ".." in parts:
+                if (
+                    normalized.startswith("/")
+                    or re.match(r"^[A-Za-z]:/", normalized)
+                    or ".." in parts
+                ):
                     suspicious_names.append(name[:240])
                 if DEX_NAME.fullmatch(normalized):
                     dex_files.append(normalized)
