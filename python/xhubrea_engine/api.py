@@ -14,6 +14,7 @@ from collections import deque
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 
 from xhubrea_engine.antigravity_adapter import ask_antigravity
@@ -25,6 +26,21 @@ app = FastAPI(
     version="0.1.0",
     description="Authenticated, read-only AI research endpoint.",
 )
+
+# Browser access is disabled unless an explicit origin allowlist is configured.
+_allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("XHUBREA_CORS_ORIGINS", "").split(",")
+    if origin.strip()
+]
+if _allowed_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_allowed_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
 
 MAX_REQUESTS_PER_MINUTE = 10
 _request_times: deque[float] = deque()
