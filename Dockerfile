@@ -7,8 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY python/requirements-backend.txt /app/requirements-backend.txt
+COPY python/requirements-antigravity.txt /app/requirements-antigravity.txt
 RUN python -m pip install --upgrade pip \
-    && python -m pip install -r /app/requirements-backend.txt
+    && python -m pip install -r /app/requirements-backend.txt \
+    && python -m pip install -r /app/requirements-antigravity.txt
 
 COPY python/xhubrea_engine /app/xhubrea_engine
 
