@@ -34,6 +34,21 @@ describe("XhubREA dashboard interactions", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("closes the help dialog with Escape", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /Help/ }));
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens and closes mobile navigation", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Close navigation" }));
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("opens a module placeholder from a suggestion card", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /Review security posture/ }));
