@@ -41,4 +41,5 @@ class IntelligenceTests(unittest.TestCase):
             structure_findings(self.items * 5)
 
 
-if __ (unittest.main())
+if __name__ == "__main__":
+    unittest.main()
