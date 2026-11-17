@@ -28,3 +28,10 @@
 .menu-button{display:none}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #b5a1f4;outline-offset:3px}
 @media(max-width:760px){.menu-button{display:grid}}
+
+
+.settings-field { display: grid; gap: 8px; margin: 18px 0; color: var(--text, inherit); font-size: 13px; font-weight: 600; }
+.settings-field input { width: min(100%, 560px); box-sizing: border-box; border: 1px solid var(--border, #344761); border-radius: 10px; padding: 12px 14px; background: var(--surface, #111d31); color: inherit; font: inherit; }
+.settings-field input:focus { outline: 2px solid var(--accent, #8ab4ff); outline-offset: 2px; }
+.backend-settings { align-items: flex-start; }
+.backend-settings .modal-primary:disabled { opacity: .55; cursor: not-allowed; }
