@@ -526,6 +526,57 @@ private fun XhubReaDashboard() {
             }
         }
         item {
+            SectionHeading(
+                title = "Research workflow",
+                subtitle = "A clear path from APK selection to an evidence-based report."
+            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    val workflowSteps = listOf(
+                        Triple("01", "Choose an APK", "Select a readable APK from your device."),
+                        Triple("02", "Run analysis", "Use the available read-only inspection modules."),
+                        Triple("03", "Review evidence", "Check findings, limits and supporting details."),
+                        Triple("04", "Export report", "Save the combined research notes as a text report.")
+                    )
+                    workflowSteps.forEachIndexed { index, step ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    step.first,
+                                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(step.second, fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface)
+                                Text(step.third, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        if (index != workflowSteps.lastIndex) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+        item {
             SectionHeading(title = "Project workspace", subtitle = "Keep notes and observations for your authorized research.")
             OutlinedTextField(
                 value = target,
