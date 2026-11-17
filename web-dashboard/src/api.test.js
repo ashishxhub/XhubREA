@@ -30,6 +30,32 @@ describe("XhubREA backend client", () => {
     expect(fetchMock.mock.calls[0][1].body).toBe(JSON.stringify({ prompt: "Explain this finding" }));
   });
 
+  it("allows HTTP only for localhost development", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ status: "ok" })
+    }));
+    await expect(checkBackendHealth({ baseUrl: "http://localhost:8000" }))
+      .resolves.toEqual({ status: "ok" });
+  });
+
+  it("surfaces sanitized backend configuration errors", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false, status: 503, json: async () => ({ detail: "AI agent is not configured." })
+    }));
+    await expect(sendResearchMessage({
+      baseUrl: "https://api.example.com", token: "temporary-token"
+    }, "Test agent")).rejects.toThrow("AI agent is not configured.");
+  });
+
+  it("rejects malformed agent responses", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ unexpected: true })
+    }));
+    await expect(sendResearchMessage({
+      baseUrl: "https://api.example.com", token: "temporary-token"
+    }, "Test agent")).rejects.toThrow("invalid response");
+  });
+
   it("rejects empty prompts and invalid evidence counts", async () => {
     await expect(sendResearchMessage({ baseUrl: "https://api.example.com" }, "  "))
       .rejects.toThrow("cannot be empty");

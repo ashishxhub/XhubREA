@@ -24,6 +24,7 @@ describe("XhubREA dashboard interactions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
     expect(screen.getByText("Explain this app architecture")).toBeInTheDocument();
     expect(screen.getByText(/configure a backend URL and temporary access token/)).toBeInTheDocument();
+    expect(screen.getByText(/The Antigravity backend is not connected yet/)).toBeInTheDocument();
   });
 
   it("opens and closes the help dialog", () => {
@@ -47,6 +48,15 @@ describe("XhubREA dashboard interactions", () => {
     expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "true");
     fireEvent.click(screen.getAllByRole("button", { name: "Close navigation" })[0]);
     expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("opens the Antigravity Agent workspace and explains secure backend routing", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /Antigravity Agent/ }));
+    expect(screen.getByRole("heading", { name: "Antigravity Agent" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Research with the Antigravity Agent" })).toBeInTheDocument();
+    expect(screen.getByText(/Gemini key stays on the server/)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Research message" })).toHaveAttribute("placeholder", expect.stringContaining("Antigravity Agent"));
   });
 
   it("opens a module placeholder from a suggestion card", () => {

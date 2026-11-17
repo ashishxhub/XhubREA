@@ -12,6 +12,7 @@ const navGroups = [
     { label: "New analysis", icon: Plus, description: "Start a fresh, evidence-led research session." },
     { label: "Application intelligence", icon: AppWindow, description: "Explore application structure, components and dependencies." },
     { label: "Research assistant", icon: Bot, description: "Organize technical questions and research notes." },
+    { label: "Antigravity Agent", icon: Sparkles, description: "Use the Google Antigravity-powered research agent through your secure XhubREA backend." },
     { label: "Reports", icon: FolderOpen, description: "Review and organize analysis reports." }
   ]},
   { title: "INTELLIGENCE", items: [
@@ -77,7 +78,13 @@ export default function App() {
     if (!text || isSending) return;
     setMessages(current => [...current, { role: "user", text }]);
     setPrompt("");
-    if (!backendUrl.trim() || !apiToken.trim()) return;
+    if (!backendUrl.trim() || !apiToken.trim()) {
+      setMessages(current => [...current, {
+        role: "assistant",
+        text: "The Antigravity backend is not connected yet. Open Settings, enter your deployed HTTPS backend URL and temporary access token, then check the connection and try again. Your Gemini API key belongs only on the backend server."
+      }]);
+      return;
+    }
     setIsSending(true);
     try {
       const answer = await sendResearchMessage({ baseUrl: backendUrl, token: apiToken }, text);
@@ -185,7 +192,19 @@ export default function App() {
           ) : (
             <section className="section-view">
               <div className="page-heading"><div className="heading-icon">{active === "Settings" ? <Settings size={20} /> : activeItem ? <activeItem.icon size={20} /> : <Layers3 size={20} />}</div><div><span className="eyebrow-text">XHUBREA WORKSPACE</span><h1>{active}</h1><p>{activeItem?.description || "Manage your workspace preferences and preview settings."}</p></div></div>
-              {active === "Settings" ? (
+              {active === "Antigravity Agent" ? (
+                <div className="coming-card backend-settings">
+                  <div className="coming-icon"><Sparkles size={20} /></div>
+                  <div>
+                    <span className="coming-label">GOOGLE ANTIGRAVITY · BACKEND POWERED</span>
+                    <h2>Research with the Antigravity Agent</h2>
+                    <p>Ask architecture and application-research questions. XhubREA sends your prompt to the secured Python backend, which calls the Antigravity SDK. The Gemini key stays on the server; it is never sent to this browser.</p>
+                    <div className="trust-strip"><LockKeyhole size={14} /><span>Read-only research mode</span><span className="trust-divider">•</span><span>Backend URL and temporary token are configured in Settings</span></div>
+                    <button className="modal-primary" onClick={() => setActive("Settings")}>Configure backend in Settings</button>
+                    <p role="status" aria-live="polite">{backendUrl && apiToken ? "Session credentials entered. Send a prompt below to test the Antigravity-backed agent." : "Not configured yet. Connect your backend and add a temporary access token in Settings."}</p>
+                  </div>
+                </div>
+              ) : active === "Settings" ? (
                 <div className="coming-card backend-settings">
                   <div className="coming-icon"><LockKeyhole size={20} /></div>
                   <div>
@@ -201,7 +220,7 @@ export default function App() {
               ) : (
                 <div className="coming-card"><div className="coming-icon"><Clock3 size={20} /></div><div><span className="coming-label">MODULE PLACEHOLDER</span><h2>This workspace is being prepared</h2><p>The V2 interface is in place. Its analysis engine and connected data workflows will be added in later development stages.</p><button className="text-button" onClick={startNew}>Back to new analysis <span>→</span></button></div></div>
               )}
-              <div className="module-composer"><span className="eyebrow-text">START A LOCAL RESEARCH DRAFT</span><Composer prompt={prompt} setPrompt={setPrompt} sendMessage={sendMessage} placeholder={`Ask something about ${active.toLowerCase()}...`} /></div>
+              <div className="module-composer"><span className="eyebrow-text">START A LOCAL RESEARCH DRAFT</span><Composer prompt={prompt} setPrompt={setPrompt} sendMessage={sendMessage} placeholder={active === "Antigravity Agent" ? "Ask the Antigravity Agent to research an authorized app or source project..." : `Ask something about ${active.toLowerCase()}...`} /></div>
             </section>
           )}
           <footer className="page-footer"><span>© XhubREA</span><span className="footer-dot">•</span><span>Application intelligence workspace</span><span className="footer-spacer" /><span>Preview build · V2</span></footer>

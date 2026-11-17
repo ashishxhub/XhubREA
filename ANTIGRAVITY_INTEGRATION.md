@@ -95,3 +95,8 @@ export XHUBREA_CORS_ORIGINS="https://your-dashboard.example.com"
 ```
 
 Use HTTPS for remote deployments. Do not expose the development server directly to the public internet. Do not place the Gemini API key in the browser; only the backend should hold `GEMINI_API_KEY`. The dashboard connection has been implemented, but production deployment and live Gemini responses still require owner-managed hosting and credentials.
+
+
+## Dedicated Antigravity workspace in the web dashboard
+
+The dashboard includes an **Antigravity Agent** workspace in the navigation. It reuses the authenticated `POST /v1/agent/chat` route through `web-dashboard/src/api.js`; the browser never calls Google directly and never receives the Gemini API key. Configure the backend URL and temporary bearer token in Settings, then open Antigravity Agent and send a research prompt. Remote backends must use HTTPS and allow the dashboard origin through the explicit CORS allowlist. This is a frontend integration; it still requires a deployed backend, server-side secrets, and a live provider test before it can be considered production-ready.
