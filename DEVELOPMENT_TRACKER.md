@@ -102,3 +102,14 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Dedicated Research Assistant, APK upload and Reports screens.
 - [ ] Android build, lint and device verification (not yet run).
 - Note: this is a first-screen UI implementation step, not a complete Android redesign.
+
+
+### Android V2 workspace navigation (2026-11-17)
+- [x] Added section navigation for Overview, APK, Research, Reports and Settings.
+- [x] Added dedicated APK entry screen with APK picker and route to the full existing analysis workspace.
+- [x] Added Research screen for current research, network, privacy, behaviour and resource reports.
+- [x] Added Reports screen with analysis summary and report export action.
+- [x] Preserved the existing detailed Overview analysis workspace and Settings preferences.
+- [ ] Replace the compact top section tabs with a persistent bottom navigation bar.
+- [ ] Add a dedicated conversational Research Assistant (not yet implemented).
+- [ ] Verify Android compile, lint, emulator/device navigation and report export.
