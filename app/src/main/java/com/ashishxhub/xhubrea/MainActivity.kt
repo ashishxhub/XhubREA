@@ -1398,6 +1398,20 @@ private fun XhubReaDashboard() {
                         InfoCard(title = "APK report", body = apkReport)
             Spacer(modifier = Modifier.height(8.dp))
             SectionHeading(title = "APK information dashboard", subtitle = "A quick summary of the selected package.")
+            InfoCard(
+                title = "Package structure overview",
+                body = if (apkReport == "No APK inspected yet." || apkReport.startsWith("Could not inspect")) {
+                    "Choose a readable APK to see its declared permissions and Android components."
+                } else {
+                    buildString {
+                        appendLine("Declared permissions: ${extractSectionCount(apkReport, "Declared permissions")}")
+                        appendLine("Activities: ${extractSectionCount(apkReport, "Activities")}")
+                        appendLine("Services: ${extractSectionCount(apkReport, "Services")}")
+                        appendLine("Receivers: ${extractSectionCount(apkReport, "Receivers")}")
+                        append("Providers: ${extractSectionCount(apkReport, "Providers")}")
+                    }
+                }
+            )
             InfoCard(title = "App identity", body = reportSection(apkReport, "App name:"))
             InfoCard(title = "Package and version", body = reportSection(apkReport, "Package:"))
             InfoCard(title = "File size", body = reportSection(apkReport, "APK file size:"))
