@@ -53,6 +53,25 @@ The adapter is opt-in, checks for a backend API key, and imports the SDK
 lazily. It uses the SDK's default read-only capability mode. Do not enable
 write-capable tools for untrusted prompts or inspected application contents.
 
+## Optional HTTP API
+
+Install the backend dependencies (Python 3.10+):
+
+```bash
+python -m pip install -r python/requirements-backend.txt
+export XHUBREA_API_TOKEN="a-long-random-server-token"
+export GEMINI_API_KEY="your_key"
+export XHUBREA_ANTIGRAVITY_ENABLED=1
+uvicorn xhubrea_engine.api:app --app-dir python --host 127.0.0.1 --port 8000
+```
+
+The API exposes `GET /health` and authenticated `POST /v1/agent/chat`.
+Send `Authorization: Bearer <XHUBREA_API_TOKEN>` and JSON `{\"prompt\":\"...\"}`.
+Prompts are limited to 8,000 characters and the process applies a 10-request/minute
+rate limit. The limit is process-local; production deployment must also use HTTPS,
+a trusted gateway-level rate limit, monitoring, and secure secret storage. Do not
+expose the development server directly to the public internet.
+
 ## Not yet verified
 
 - Antigravity SDK installation in the target backend environment.
