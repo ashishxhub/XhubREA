@@ -23,7 +23,7 @@ describe("XhubREA dashboard interactions", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
     expect(screen.getByText("Explain this app architecture")).toBeInTheDocument();
-    expect(screen.getByText(/AI responses, file uploads and APK analysis are not connected yet/)).toBeInTheDocument();
+    expect(screen.getByText(/configure a backend URL and temporary access token/)).toBeInTheDocument();
   });
 
   it("opens and closes the help dialog", () => {
@@ -56,3 +56,4 @@ describe("XhubREA dashboard interactions", () => {
     expect(screen.getByText("This workspace is being prepared")).toBeInTheDocument();
   });
 });
+
