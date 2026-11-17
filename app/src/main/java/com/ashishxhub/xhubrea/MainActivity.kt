@@ -154,6 +154,7 @@ private fun XhubReaDashboard() {
     var completeAnalysisJob by remember { mutableStateOf<Job?>(null) }
 
     var showSettings by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf("Overview") }
     var simpleExplain by remember { mutableStateOf(preferences.getBoolean("simple_explain", true)) }
     var showHints by remember { mutableStateOf(preferences.getBoolean("show_hints", true)) }
     var smoothMotion by remember { mutableStateOf(preferences.getBoolean("smooth_motion", false)) }
@@ -327,6 +328,70 @@ private fun XhubReaDashboard() {
         }
     }
 
+    if (selectedTab != "Overview" && !showSettings) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf("Overview", "APK", "Research", "Reports", "Settings").forEach { tab ->
+                    TextButton(onClick = {
+                        selectedTab = tab
+                        if (tab == "Settings") showSettings = true
+                    }) {
+                        Text(tab, color = if (selectedTab == tab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 11.sp)
+                    }
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                when (selectedTab) {
+                    "APK" -> {
+                        item {
+                            SectionHeading("APK Analysis", "Select an APK you own or are authorized to study.")
+                            InfoCard("Current APK", apkReport.take(2400))
+                            Button(onClick = {
+                                apkPicker.launch(arrayOf("application/vnd.android.package-archive", "application/octet-stream"))
+                            }, modifier = Modifier.fillMaxWidth()) { Text("Choose APK file") }
+                            Button(onClick = {
+                                selectedTab = "Overview"
+                                status = "APK analysis tools are available in the Overview workspace below."
+                            }, modifier = Modifier.fillMaxWidth()) { Text("Open full analysis workspace") }
+                        }
+                    }
+                    "Research" -> {
+                        item {
+                            SectionHeading("Research Intelligence", "Read-only findings with evidence and confidence context.")
+                            InfoCard("Research Lab", fullResearchReport)
+                            InfoCard("Network Intelligence", networkIntelligenceReport)
+                            InfoCard("Privacy Intelligence", privacyIntelligenceReport)
+                            InfoCard("Human Behaviour Intelligence", humanBehaviourReport)
+                            InfoCard("Python Resource Intelligence", resourceIntelligenceReport)
+                        }
+                    }
+                    "Reports" -> {
+                        item {
+                            SectionHeading("Reports", "Review and export the latest local analysis results.")
+                            InfoCard("Analysis summary", fullAnalysisSummary)
+                            InfoCard("APK metadata", apkReport.take(2400))
+                            InfoCard("Comparison", comparisonReport.take(2400))
+                            Button(onClick = { reportSaver.launch("XhubREA-research-report.txt") },
+                                modifier = Modifier.fillMaxWidth()) { Text("Export research report") }
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
+
     if (showSettings) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -397,6 +462,24 @@ private fun XhubReaDashboard() {
         contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 44.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf("Overview", "APK", "Research", "Reports", "Settings").forEach { tab ->
+                    TextButton(onClick = {
+                        selectedTab = tab
+                        if (tab == "Settings") showSettings = true
+                    }) {
+                        Text(tab, color = if (selectedTab == tab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 11.sp)
+                    }
+                }
+            }
+        }
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
