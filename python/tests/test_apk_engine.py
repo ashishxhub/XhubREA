@@ -135,6 +135,36 @@ class ApkEngineTests(unittest.TestCase):
         report = analyze_apk(path)
         self.assertIn("..\\\\outside.txt", report["path_safety_warnings"])
 
+    def test_flags_windows_absolute_paths(self):
+        path = self.make_apk([
+            ("C:/outside.txt", b"data"),
+            ("AndroidManifest.xml", b"manifest"),
+        ])
+        report = analyze_apk(path)
+        self.assertIn("C:/outside.txt", report["path_safety_warnings"])
+
+    def test_flags_symlink_entries_without_following_them(self):
+        path = self.make_apk([("assets/link", b"not-followed")])
+        with zipfile.ZipFile(path, "a") as apk:
+            info = zipfile.ZipInfo("assets/symlink")
+            info.create_system = 3
+            info.external_attr = (stat.S_IFLNK | 0o777) << 16
+            apk.writestr(info, "target")
+        report = analyze_apk(path)
+        self.assertEqual(report["symlink_entry_warnings"], ["assets/symlink"])
+
+    def test_flags_encrypted_entries_from_metadata(self):
+        path = self.make_apk([("assets/locked.bin", b"metadata-only")])
+        with zipfile.ZipFile(path, "r") as apk:
+            info = apk.getinfo("assets/locked.bin")
+            self.assertEqual(info.flag_bits & 1, 0)
+        # Simulate the general-purpose encrypted flag in the central directory.
+        with zipfile.ZipFile(path, "a") as apk:
+            info = apk.getinfo("assets/locked.bin")
+            info.flag_bits |= 1
+        report = analyze_apk(path)
+        self.assertIn("assets/locked.bin", report["encrypted_entry_warnings"])
+
     def test_only_counts_valid_dex_filename_patterns(self):
         path = self.make_apk([
             ("classes.dex", b"one"),
