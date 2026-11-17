@@ -18,7 +18,7 @@
 
 The latest recorded main-branch Android workflow for commit `5c3efb3783a9ffb4f3ad466c8dc923d6c606d406` completed successfully, including lint, unit tests, debug APK packaging and unsigned release bundle packaging. This confirms CI build success, not real-device runtime verification of the Python bridge.
 
-## Feature boundaries
+## Optional AI agent integration\n\nGoogle Antigravity SDK is scaffolded as an opt-in dependency for a separate Python 3.10+ backend, not the Android/Chaquopy runtime. See [ANTIGRAVITY_INTEGRATION.md](ANTIGRAVITY_INTEGRATION.md). Live installation, authentication and agent execution still require backend setup and verification.\n\n## Feature boundaries
 
 XhubREA is an evolving static research MVP, not a complete commercial reverse-engineering suite. It does not execute or install analyzed APKs. It does not currently provide complete instruction-level DEX decompilation, full resource-table decoding, runtime tracing, packet capture, API request replay, or universal interpretation of proprietary app/game logic. Some formats, obfuscated files, split packages and dynamic code may not be fully understood. Findings are evidence-based indicators, not proof.
 
