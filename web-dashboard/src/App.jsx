@@ -215,7 +215,7 @@ export default function App() {
 
 function Composer({ prompt, setPrompt, sendMessage, placeholder }) {
   return <div className="composer">
-    <textarea value={prompt} disabled={isSending} onChange={event => setPrompt(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={placeholder} rows={2} aria-label="Research message" />
-    <div className="composer-footer"><span className="composer-hint">Enter to send <span>·</span> Shift + Enter for a new line</span><button className="send-button" onClick={() => sendMessage()} disabled={!prompt.trim() || isSending} aria-label="Send message"><ArrowUp size={18} /></button></div>
+    <textarea value={prompt} onChange={event => setPrompt(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={placeholder} rows={2} aria-label="Research message" />
+    <div className="composer-footer"><span className="composer-hint">Enter to send <span>·</span> Shift + Enter for a new line</span><button className="send-button" onClick={() => sendMessage()} disabled={!prompt.trim()} aria-label="Send message"><ArrowUp size={18} /></button></div>
   </div>;
 }
