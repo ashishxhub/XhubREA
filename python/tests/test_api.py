@@ -35,7 +35,9 @@ class ApiAuthTests(unittest.TestCase):
 
     def test_prompt_has_strict_length_bounds(self):
         with self.assertRaises(ValueError):
-            AgentChatRequest(prompt=" ") if False else AgentChatRequest(prompt="")
+            AgentChatRequest(prompt="")
+        with self.assertRaises(ValueError):
+            AgentChatRequest(prompt="   ")
         with self.assertRaises(ValueError):
             AgentChatRequest(prompt="x" * 8001)
 
