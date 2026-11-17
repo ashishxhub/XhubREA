@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { checkBackendHealth, sendResearchMessage } from "./api.js";
 import {
   Activity, AppWindow, ArrowUp, Bot, ChevronDown, CircleHelp,
   FileSearch, FolderOpen, LockKeyhole, Menu, Plus, Search,
@@ -35,6 +36,11 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [backendUrl, setBackendUrl] = useState("");
+  const [apiToken, setApiToken] = useState("");
+  const [connectionStatus, setConnectionStatus] = useState("Not connected");
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     if (!helpOpen) return undefined;
@@ -53,11 +59,34 @@ export default function App() {
     items: group.items.filter(item => item.label.toLowerCase().includes(search.toLowerCase()))
   })).filter(group => group.items.length), [search]);
 
-  function sendMessage(value = prompt) {
+  async function connectBackend() {
+    setIsConnecting(true);
+    setConnectionStatus("Checking connection…");
+    try {
+      const result = await checkBackendHealth({ baseUrl: backendUrl });
+      setConnectionStatus(result.status === "ok" ? "Backend reachable · authentication required for AI" : "Unexpected health response");
+    } catch (error) {
+      setConnectionStatus(error.message || "Could not connect to backend.");
+    } finally {
+      setIsConnecting(false);
+    }
+  }
+
+  async function sendMessage(value = prompt) {
     const text = value.trim();
-    if (!text) return;
+    if (!text || isSending) return;
     setMessages(current => [...current, { role: "user", text }]);
     setPrompt("");
+    if (!backendUrl.trim() || !apiToken.trim()) return;
+    setIsSending(true);
+    try {
+      const answer = await sendResearchMessage({ baseUrl: backendUrl, token: apiToken }, text);
+      setMessages(current => [...current, { role: "assistant", text: answer }]);
+    } catch (error) {
+      setMessages(current => [...current, { role: "assistant", text: `Backend error: ${error.message}` }]);
+    } finally {
+      setIsSending(false);
+    }
   }
 
   function selectPage(label) {
@@ -134,8 +163,8 @@ export default function App() {
           {messages.length > 0 ? (
             <section className="conversation">
               <div className="page-heading compact-heading"><div className="heading-icon"><Bot size={19} /></div><div><span className="eyebrow-text">RESEARCH SESSION</span><h1>Research workspace</h1><p>Your question is saved in this local preview session.</p></div></div>
-              {messages.map((message, index) => <div className="message-row" key={index}><div className="message-avatar">You</div><div className="message-bubble">{message.text}</div></div>)}
-              <div className="notice"><Sparkles size={16} /><span>Frontend preview only: AI responses, file uploads and APK analysis are not connected yet.</span></div>
+              {messages.map((message, index) => <div className="message-row" key={index}><div className="message-avatar">{message.role === "assistant" ? "REA" : "You"}</div><div className="message-bubble">{message.text}</div></div>)}
+              <div className="notice"><Sparkles size={16} /><span>{backendUrl && apiToken ? (isSending ? "REA is processing your research request…" : "Connected mode is enabled for this session.") : "Local preview: configure a backend URL and temporary access token in Settings to enable AI chat."}</span></div>
               <Composer prompt={prompt} setPrompt={setPrompt} sendMessage={sendMessage} placeholder="Continue your research..." />
             </section>
           ) : isHome ? (
@@ -156,7 +185,22 @@ export default function App() {
           ) : (
             <section className="section-view">
               <div className="page-heading"><div className="heading-icon">{active === "Settings" ? <Settings size={20} /> : activeItem ? <activeItem.icon size={20} /> : <Layers3 size={20} />}</div><div><span className="eyebrow-text">XHUBREA WORKSPACE</span><h1>{active}</h1><p>{activeItem?.description || "Manage your workspace preferences and preview settings."}</p></div></div>
-              <div className="coming-card"><div className="coming-icon"><Clock3 size={20} /></div><div><span className="coming-label">MODULE PLACEHOLDER</span><h2>This workspace is being prepared</h2><p>The V2 interface is in place. Its analysis engine and connected data workflows will be added in later development stages.</p><button className="text-button" onClick={startNew}>Back to new analysis <span>→</span></button></div></div>
+              {active === "Settings" ? (
+                <div className="coming-card backend-settings">
+                  <div className="coming-icon"><LockKeyhole size={20} /></div>
+                  <div>
+                    <span className="coming-label">OPTIONAL BACKEND CONNECTION</span>
+                    <h2>Connect your XhubREA API</h2>
+                    <p>Use your own deployed HTTPS backend. The access token is kept only in this page session and is not saved to browser storage.</p>
+                    <label className="settings-field">Backend URL<input aria-label="Backend URL" value={backendUrl} onChange={event => setBackendUrl(event.target.value)} placeholder="https://your-api.example.com" /></label>
+                    <label className="settings-field">Temporary API access token<input aria-label="Temporary API access token" type="password" autoComplete="off" value={apiToken} onChange={event => setApiToken(event.target.value)} placeholder="Paste your backend token" /></label>
+                    <button className="modal-primary" onClick={connectBackend} disabled={isConnecting || !backendUrl.trim()}>{isConnecting ? "Checking…" : "Check backend connection"}</button>
+                    <p role="status" aria-live="polite">{connectionStatus}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="coming-card"><div className="coming-icon"><Clock3 size={20} /></div><div><span className="coming-label">MODULE PLACEHOLDER</span><h2>This workspace is being prepared</h2><p>The V2 interface is in place. Its analysis engine and connected data workflows will be added in later development stages.</p><button className="text-button" onClick={startNew}>Back to new analysis <span>→</span></button></div></div>
+              )}
               <div className="module-composer"><span className="eyebrow-text">START A LOCAL RESEARCH DRAFT</span><Composer prompt={prompt} setPrompt={setPrompt} sendMessage={sendMessage} placeholder={`Ask something about ${active.toLowerCase()}...`} /></div>
             </section>
           )}
@@ -171,7 +215,7 @@ export default function App() {
 
 function Composer({ prompt, setPrompt, sendMessage, placeholder }) {
   return <div className="composer">
-    <textarea value={prompt} onChange={event => setPrompt(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={placeholder} rows={2} aria-label="Research message" />
-    <div className="composer-footer"><span className="composer-hint">Enter to send <span>·</span> Shift + Enter for a new line</span><button className="send-button" onClick={() => sendMessage()} disabled={!prompt.trim()} aria-label="Send message"><ArrowUp size={18} /></button></div>
+    <textarea value={prompt} disabled={isSending} onChange={event => setPrompt(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={placeholder} rows={2} aria-label="Research message" />
+    <div className="composer-footer"><span className="composer-hint">Enter to send <span>·</span> Shift + Enter for a new line</span><button className="send-button" onClick={() => sendMessage()} disabled={!prompt.trim() || isSending} aria-label="Send message"><ArrowUp size={18} /></button></div>
   </div>;
 }
