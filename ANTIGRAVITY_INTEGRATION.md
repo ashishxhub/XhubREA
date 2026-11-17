@@ -65,10 +65,11 @@ export XHUBREA_ANTIGRAVITY_ENABLED=1
 uvicorn xhubrea_engine.api:app --app-dir python --host 127.0.0.1 --port 8000
 ```
 
-The API exposes `GET /health` and authenticated `POST /v1/agent/chat`.
+The API exposes `GET /health`, authenticated `POST /v1/agent/chat`, and authenticated `POST /v1/research/analyze`.
 Send `Authorization: Bearer <XHUBREA_API_TOKEN>` and JSON `{\"prompt\":\"...\"}`.
-Prompts are limited to 8,000 characters and the process applies a 10-request/minute
-rate limit. The limit is process-local; production deployment must also use HTTPS,
+The chat prompt is limited to 8,000 characters. Research analysis accepts 1–12 supplied
+evidence items with bounded fields and builds an evidence-grounded report prompt. The
+process applies a 10-request/minute rate limit. The limit is process-local; production deployment must also use HTTPS,
 a trusted gateway-level rate limit, monitoring, and secure secret storage. Do not
 expose the development server directly to the public internet.
 
