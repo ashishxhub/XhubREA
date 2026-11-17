@@ -49,6 +49,15 @@ describe("XhubREA dashboard interactions", () => {
     expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("opens the Antigravity Agent workspace and explains secure backend routing", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /Antigravity Agent/ }));
+    expect(screen.getByRole("heading", { name: "Antigravity Agent" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Research with the Antigravity Agent" })).toBeInTheDocument();
+    expect(screen.getByText(/Gemini key stays on the server/)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Research message" })).toHaveAttribute("placeholder", expect.stringContaining("Antigravity Agent"));
+  });
+
   it("opens a module placeholder from a suggestion card", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /Review security posture/ }));
