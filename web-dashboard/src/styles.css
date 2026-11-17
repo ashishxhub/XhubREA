@@ -82,3 +82,29 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 @media (prefers-reduced-motion: reduce) {
   *,*::before,*::after { transition:none!important; animation:none!important; }
 }
+
+
+/* XhubREA 60-30-10 color rule — product-wide hierarchy */
+:root {
+  --base: #0c0f15;       /* 60%: canvas and large background areas */
+  --surface: #151a23;    /* 30%: cards, sidebar and work panels */
+  --surface-raised: #1a2230;
+  --accent: #6487fa;     /* 10%: primary actions and active states */
+  --accent-hover: #7897ff;
+  --text: #edf1f8;
+  --muted: #929eaf;
+  --line: #293241;
+  color: var(--text);
+  background: var(--base);
+}
+.app-shell { background: var(--base); }
+.sidebar, .topbar { background: var(--surface); border-color: var(--line); }
+.panel, .card, .composer, .suggestion-card, .help-modal { background: var(--surface); border-color: var(--line); }
+.nav-item.active, .suggestion-icon, .coming-icon, .hero-icon, .heading-icon {
+  background: var(--surface-raised); color: var(--accent);
+}
+.brand-mark, .send-button, .modal-primary { background: var(--accent); }
+.brand-name span, .welcome h1 span, .text-button, .nav-item.active svg { color: var(--accent); }
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px;
+}
