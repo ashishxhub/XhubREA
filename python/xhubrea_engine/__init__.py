@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 import zipfile
 from collections import Counter
 from pathlib import PurePosixPath
@@ -129,6 +130,9 @@ def analyze_apk(path: str) -> dict:
             asset_files = 0
             suspicious_names = []
             duplicate_names = []
+            symlink_names = []
+            encrypted_names = []
+            unsupported_compression = []
             seen_names = set()
             names = []
 
@@ -141,8 +145,17 @@ def analyze_apk(path: str) -> dict:
                 else:
                     seen_names.add(normalized)
                 parts = PurePosixPath(normalized).parts
-                if normalized.startswith("/") or ".." in parts:
+                drive_like = bool(re.match(r"^[A-Za-z]:", normalized))
+                has_null = "\\x00" in name
+                if normalized.startswith("/") or normalized.startswith("//") or drive_like or ".." in parts or has_null:
                     suspicious_names.append(name[:240])
+                unix_mode = item.external_attr >> 16
+                if stat.S_ISLNK(unix_mode):
+                    symlink_names.append(name[:240])
+                if item.flag_bits & 0x1:
+                    encrypted_names.append(name[:240])
+                if item.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED, zipfile.ZIP_BZIP2, zipfile.ZIP_LZMA):
+                    unsupported_compression.append(name[:240])
                 if DEX_NAME.fullmatch(normalized):
                     dex_files.append(normalized)
                 if normalized.startswith("lib/") and normalized.endswith(".so"):
@@ -184,6 +197,9 @@ def analyze_apk(path: str) -> dict:
                 "top_level_entry_counts": dict(sorted(counts.items())),
                 "path_safety_warnings": suspicious_names[:100],
                 "duplicate_entry_warnings": duplicate_names[:100],
+                "symlink_entry_warnings": symlink_names[:100],
+                "encrypted_entry_warnings": encrypted_names[:100],
+                "unsupported_compression_warnings": unsupported_compression[:100],
                 "notes_hi": [
                     "Yeh report sirf APK ki ZIP structure ko padhti hai.",
                     "APK install ya execute nahi hota.",
@@ -191,6 +207,7 @@ def analyze_apk(path: str) -> dict:
                     "Manifest format hint hai; binary XML ka full decode alag module karta hai.",
                     "Path warnings suspicious archive names dikhati hain; files extract nahi ki jaati.",
                     "Duplicate entry warnings ek hi normalized path ke multiple records dikhati hain.",
+                    "Symlink, encrypted aur unsupported-compression entries sirf metadata se flag hoti hain; unhe read ya extract nahi kiya jata.",
                     "Resource intelligence archive paths aur declared sizes par based hai; content decode nahi karta.",
                 ],
             }
