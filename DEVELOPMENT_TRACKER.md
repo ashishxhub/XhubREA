@@ -55,7 +55,7 @@ Last verified against main commit: pending latest CI for REA research workflow
 | Dependency and architecture graph | NOT_STARTED | Build from verified component/file evidence. |
 | Game research lab expansion | NOT_STARTED | Heuristic asset inventory and engine evidence. |
 | REA Detective evidence correlation | NOT_STARTED | Findings must retain evidence and confidence labels. |
-| Evidence-grounded REA research workflow | IMPLEMENTED | `research_workflow.py` builds bounded prompts from operator-supplied evidence; `/v1/research/analyze` endpoint added. Latest CI pending. |\n| AI assistant | IN_PROGRESS | Optional Antigravity adapter and authenticated backend endpoints exist; live provider test and Android integration remain pending. |
+| Evidence-grounded REA research workflow | VERIFIED | `research_workflow.py` builds bounded prompts from operator-supplied evidence; `/v1/research/analyze` endpoint and unit tests passed in run 44095412888. |\n| Structured Intelligence Engine | IMPLEMENTED | `intelligence.py` labels operator observations, confidence tiers, groups same-source evidence without causal claims; `/v1/research/structure` added. Latest CI pending. |\n| AI assistant | IN_PROGRESS | Optional Antigravity adapter and authenticated backend endpoints exist; live provider test and Android integration remain pending. |
 | Knowledge graph visualization | NOT_STARTED | Depends on normalized analysis model. |
 | Compare Intelligence | NOT_STARTED | Depends on normalized reports. |
 | PDF/HTML/JSON/CSV reports | NOT_STARTED | JSON first, then HTML/PDF; CSV only for tabular data. |
