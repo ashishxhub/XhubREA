@@ -82,3 +82,16 @@ expose the development server directly to the public internet.
 
 This commit adds the optional integration scaffold only. It does not claim the
 SDK is installed in the Android APK or that a live agent has been tested.
+
+
+## Web dashboard connection
+
+The React dashboard can connect to the optional API from **Settings**. Enter the deployed backend URL and a temporary `XHUBREA_API_TOKEN` value. The token remains in page memory only; it is not written to localStorage or sessionStorage.
+
+For browser access, configure an explicit comma-separated origin allowlist on the backend before starting Uvicorn:
+
+```bash
+export XHUBREA_CORS_ORIGINS="https://your-dashboard.example.com"
+```
+
+Use HTTPS for remote deployments. Do not expose the development server directly to the public internet. Do not place the Gemini API key in the browser; only the backend should hold `GEMINI_API_KEY`. The dashboard connection has been implemented, but production deployment and live Gemini responses still require owner-managed hosting and credentials.
