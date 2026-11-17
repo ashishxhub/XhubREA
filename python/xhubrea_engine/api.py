@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from xhubrea_engine.antigravity_adapter import ask_antigravity
 from xhubrea_engine.research_workflow import build_research_prompt
+from xhubrea_engine.intelligence import structure_findings
 
 app = FastAPI(
     title="XhubREA Research API",
@@ -59,6 +60,10 @@ class ResearchAnalyzeRequest(BaseModel):
 
 class ResearchAnalyzeResponse(BaseModel):
     report: str
+
+
+class ResearchStructureRequest(BaseModel):
+    findings: list[EvidenceFinding] = Field(min_length=1, max_length=12)
 
 
 def require_api_token(authorization: Annotated[str | None, Header()] = None) -> None:
@@ -147,3 +152,15 @@ async def research_analyze(payload: ResearchAnalyzeRequest) -> ResearchAnalyzeRe
     except Exception as exc:
         raise HTTPException(status_code=502, detail="AI agent request failed.") from exc
     return ResearchAnalyzeResponse(report=report)
+
+
+@app.post(
+    "/v1/research/structure",
+    dependencies=[Depends(require_api_token)],
+)
+async def research_structure(payload: ResearchStructureRequest) -> dict:
+    """Return deterministic evidence labels and source groupings; no AI inference."""
+    try:
+        return structure_findings([finding.model_dump() for finding in payload.findings])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
