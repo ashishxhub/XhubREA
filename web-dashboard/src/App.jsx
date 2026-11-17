@@ -78,7 +78,13 @@ export default function App() {
     if (!text || isSending) return;
     setMessages(current => [...current, { role: "user", text }]);
     setPrompt("");
-    if (!backendUrl.trim() || !apiToken.trim()) return;
+    if (!backendUrl.trim() || !apiToken.trim()) {
+      setMessages(current => [...current, {
+        role: "assistant",
+        text: "The Antigravity backend is not connected yet. Open Settings, enter your deployed HTTPS backend URL and temporary access token, then check the connection and try again. Your Gemini API key belongs only on the backend server."
+      }]);
+      return;
+    }
     setIsSending(true);
     try {
       const answer = await sendResearchMessage({ baseUrl: backendUrl, token: apiToken }, text);
