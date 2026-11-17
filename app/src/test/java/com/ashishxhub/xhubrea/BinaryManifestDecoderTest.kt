@@ -101,7 +101,7 @@ class BinaryManifestDecoderTest {
         out.writeIntLE(0x100)
         out.writeIntLE(stringsStart)
         out.writeIntLE(0)
-        offsets.forEach(out::writeIntLE)
+        offsets.forEach { offset -> out.writeIntLE(offset) }
         out.write(payload.toByteArray())
         return out.toByteArray()
     }
