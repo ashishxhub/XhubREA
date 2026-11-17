@@ -2086,8 +2086,48 @@ private fun inventoryApkResources(apkFile: File): String {
                 appendLine("Showing 80 of ${entries.size} files.")
             }
             appendLine()
+            appendLine(inspectResourceTable(zip))
             append("No files were extracted, modified, or executed.")
         }
+    }
+}
+
+private fun inspectResourceTable(zip: ZipFile): String {
+    val entry = zip.getEntry("resources.arsc")
+        ?: return "Resource table: resources.arsc not present."
+    if (entry.size > 32L * 1024L * 1024L) {
+        return "Resource table: skipped (larger than the 32 MiB parser limit)."
+    }
+    return runCatching {
+        val bytes = zip.getInputStream(entry).use { input ->
+            val output = java.io.ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            var total = 0
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                total += count
+                require(total <= 32 * 1024 * 1024) {
+                    "Resource table exceeds the 32 MiB read limit."
+                }
+                output.write(buffer, 0, count)
+            }
+            output.toByteArray()
+        }
+        val report = ResourceTableDecoder.decode(bytes)
+        buildString {
+            appendLine("Resource table intelligence — read-only")
+            appendLine("Global strings: ${report.globalStringCount}")
+            appendLine("Packages: ${report.packages.size}")
+            report.packages.forEach { pkg ->
+                appendLine("Package ${pkg.id}: ${pkg.name}")
+                pkg.types.forEach { type ->
+                    appendLine("  Type ${type.id}: ${type.name ?: "Unknown"} | entries=${type.entryCount} | configurations=${type.configurations}")
+                }
+            }
+        }.trimEnd()
+    }.getOrElse { error ->
+        "Resource table: could not decode safely — ${error.message ?: error.javaClass.simpleName}"
     }
 }
 
