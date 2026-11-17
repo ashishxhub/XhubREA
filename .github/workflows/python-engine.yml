@@ -2,7 +2,7 @@ name: Python Analysis Engine Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/antigravity-core-hardening]
     paths:
       - "python/**"
       - ".github/workflows/python-engine.yml"
@@ -36,6 +36,18 @@ jobs:
           python-version: "3.12"
       - name: Install optional Antigravity backend dependency
         run: python -m pip install -r python/requirements-antigravity.txt
-      - name: Verify SDK imports
+      - name: Verify SDK package, imports, and agent construction
         run: |
-          python -c "from google.antigravity import Agent, LocalAgentConfig; print('Antigravity SDK imports successfully')"
+          python - <<'PY'
+          from importlib.metadata import version
+          from google.antigravity import Agent, LocalAgentConfig
+
+          installed = version("google-antigravity")
+          assert installed.startswith("0.1."), installed
+          config = LocalAgentConfig(
+              system_instructions="XhubREA read-only authorized software research."
+          )
+          agent = Agent(config)
+          assert agent is not None
+          print(f"Antigravity SDK {installed}: imports and Agent construction passed")
+          PY
