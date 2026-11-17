@@ -14,7 +14,7 @@ from collections import deque
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from xhubrea_engine.antigravity_adapter import ask_antigravity
 
@@ -30,6 +30,13 @@ _request_times: deque[float] = deque()
 
 class AgentChatRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=8000)
+
+    @field_validator("prompt")
+    @classmethod
+    def reject_blank_prompt(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Prompt must contain non-whitespace text.")
+        return value.strip()
 
 
 class AgentChatResponse(BaseModel):
