@@ -76,18 +76,18 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(
-                    primary = Color(0xFF8AB4FF),
-                    onPrimary = Color(0xFF082044),
-                    secondary = Color(0xFF63D7D0),
-                    background = Color(0xFF080F1E),
-                    surface = Color(0xFF111D31),
-                    surfaceVariant = Color(0xFF1C2B43),
-                    onSurface = Color(0xFFEAF1FF),
-                    onSurfaceVariant = Color(0xFFB1C0D8),
-                    onBackground = Color(0xFFEAF1FF),
-                    secondaryContainer = Color(0xFF123A43),
-                    onSecondaryContainer = Color(0xFFD7FFFA),
-                    outline = Color(0xFF344761)
+                    primary = Color(0xFF6487FA),
+                    onPrimary = Color(0xFF10182A),
+                    secondary = Color(0xFF4AC7A2),
+                    background = Color(0xFF0C0F15),
+                    surface = Color(0xFF151A23),
+                    surfaceVariant = Color(0xFF1A2230),
+                    onSurface = Color(0xFFEDF1F8),
+                    onSurfaceVariant = Color(0xFF929EAF),
+                    onBackground = Color(0xFFEDF1F8),
+                    secondaryContainer = Color(0xFF142822),
+                    onSecondaryContainer = Color(0xFFD8F8EC),
+                    outline = Color(0xFF293241)
                 ),
                 shapes = Shapes(
                     extraSmall = RoundedCornerShape(8.dp),
