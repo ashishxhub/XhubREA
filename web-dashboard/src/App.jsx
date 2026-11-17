@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity, AppWindow, ArrowUp, Bot, ChevronDown, CircleHelp,
   FileSearch, FolderOpen, LockKeyhole, Menu, Plus, Search,
@@ -35,6 +35,13 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!helpOpen) return undefined;
+    const handleKeyDown = event => { if (event.key === "Escape") setHelpOpen(false); };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [helpOpen]);
 
   const activeItem = useMemo(
     () => navGroups.flatMap(group => group.items).find(item => item.label === active),
@@ -73,7 +80,7 @@ export default function App() {
   return (
     <div className="app-shell">
       {sidebarOpen && <button className="scrim" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
-      <aside className={`sidebar ${sidebarOpen ? "sidebar-open" : ""}`}>
+      <aside className={`sidebar ${sidebarOpen ? "sidebar-open" : ""}`} aria-label="Main navigation">
         <div className="brand-row">
           <div className="brand-mark"><Sparkles size={18} /></div>
           <span className="brand-name">Xhub<span>REA</span></span>
@@ -114,7 +121,7 @@ export default function App() {
       <main className="main-panel">
         <header className="topbar">
           <div className="topbar-left">
-            <button className="icon-button menu-button" onClick={() => setSidebarOpen(true)} aria-label="Open navigation"><Menu size={19} /></button>
+            <button className="icon-button menu-button" onClick={() => setSidebarOpen(true)} aria-label="Open navigation" aria-expanded={sidebarOpen}><Menu size={19} /></button>
             <span className="breadcrumb">Workspace</span><span className="crumb-divider">/</span><strong>{active}</strong>
           </div>
           <div className="topbar-actions">
