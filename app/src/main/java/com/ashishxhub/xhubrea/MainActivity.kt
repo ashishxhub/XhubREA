@@ -416,7 +416,7 @@ private fun XhubReaDashboard() {
             }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = { showSettings = false }, modifier = Modifier.weight(1f)) {
+                    Button(onClick = { showSettings = false; selectedTab = "Overview" }, modifier = Modifier.weight(1f)) {
                         Text("⌂ Home")
                     }
                     Button(onClick = { showSettings = true }, modifier = Modifier.weight(1f), enabled = false) {
