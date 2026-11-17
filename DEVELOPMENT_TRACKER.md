@@ -33,7 +33,7 @@ Last verified against main commit: `5c3efb3783a9ffb4f3ad466c8dc923d6c606d406`
 | APK comparison | IMPLEMENTED | Basic comparison exists; detailed normalized comparison remains. |
 | Python archive structure report | VERIFIED | Python tests passed in workflow 43684458135; Android bridge runtime still needs device test. |
 
-## Phase 3 — Remaining development roadmap
+## Optional AI agent integration — Google Antigravity SDK\n| Requirement | Status | Evidence / remaining work |\n|---|---|---|\n| SDK dependency manifest for separate Python backend | IMPLEMENTED | `python/requirements-antigravity.txt`; not part of Android/Chaquopy dependencies. |\n| Read-only optional adapter | IMPLEMENTED | `python/xhubrea_engine/antigravity_adapter.py`; opt-in flag, server-side API-key check, lazy import. |\n| Integration and platform notes | IMPLEMENTED | `ANTIGRAVITY_INTEGRATION.md`. |\n| Backend installation/authentication/live-agent test | NOT_STARTED | Requires Python 3.10+ backend environment and owner-provided Gemini API key. |\n| Android/Chaquopy compatibility | BLOCKED | SDK compiled runtime wheel compatibility with Android/Chaquopy is not established; keep SDK outside Android app. |\n\n## Phase 3 — Remaining development roadmap
 | Requirement | Status | Dependencies / notes |
 |---|---|---|
 | Python archive safety regression tests | IN_PROGRESS | Add path anomaly, archive limits, duplicate names, and malformed-input tests. |
