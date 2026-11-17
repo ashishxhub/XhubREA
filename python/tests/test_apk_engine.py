@@ -1,5 +1,6 @@
 import json
 import os
+import stat
 import tempfile
 import unittest
 import zipfile
@@ -155,14 +156,17 @@ class ApkEngineTests(unittest.TestCase):
 
     def test_flags_encrypted_entries_from_metadata(self):
         path = self.make_apk([("assets/locked.bin", b"metadata-only")])
-        with zipfile.ZipFile(path, "r") as apk:
-            info = apk.getinfo("assets/locked.bin")
-            self.assertEqual(info.flag_bits & 1, 0)
-        # Simulate the general-purpose encrypted flag in the central directory.
-        with zipfile.ZipFile(path, "a") as apk:
-            info = apk.getinfo("assets/locked.bin")
-            info.flag_bits |= 1
-        report = analyze_apk(path)
+        original_infolist = zipfile.ZipFile.infolist
+
+        def flagged_infolist(archive):
+            infos = original_infolist(archive)
+            for info in infos:
+                if info.filename == "assets/locked.bin":
+                    info.flag_bits |= 1
+            return infos
+
+        with patch.object(zipfile.ZipFile, "infolist", flagged_infolist):
+            report = analyze_apk(path)
         self.assertIn("assets/locked.bin", report["encrypted_entry_warnings"])
 
     def test_only_counts_valid_dex_filename_patterns(self):
