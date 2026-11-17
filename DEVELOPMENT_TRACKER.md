@@ -91,3 +91,14 @@ Latest main commit `e6c7c4ade6a01e65bf952c21aaa3be2f89257d62` adds the initial b
 | Backend-connected end-to-end UI verification | NOT_STARTED | Requires deployed API endpoint, owner-managed token and device/browser testing. |
 
 The V2 Android change so far is a Material 3 color-token alignment only. It does not claim that the entire Compose screen has been redesigned to match the Figma mobile frame.
+
+
+### Android Compose V2 — dashboard foundation (2026-11-17)
+- [x] Reworked the Android dashboard hero into the V2 dark workspace visual language.
+- [x] Added local-workspace and evidence-first status chips.
+- [x] Clarified the read-only APK analysis purpose in the first-screen copy.
+- [x] Preserved existing APK picker, analysis modules, reports, settings and project-note flows.
+- [ ] Bottom navigation and dedicated screen destinations.
+- [ ] Dedicated Research Assistant, APK upload and Reports screens.
+- [ ] Android build, lint and device verification (not yet run).
+- Note: this is a first-screen UI implementation step, not a complete Android redesign.
