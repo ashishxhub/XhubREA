@@ -47,3 +47,8 @@ A calm, technical research workspace for understanding software the user owns or
 
 ## Scope boundary
 This handoff is a frontend design, not a claim that every module or backend integration is implemented. Android frame is a design reference; native Compose implementation must be integrated and tested separately.
+
+## Implementation status (2026-11-17)
+- Web: V2 color tokens are applied to the existing React dashboard stylesheet. Existing navigation, local research draft, help dialog and optional backend settings remain in place.
+- Android: Material 3 theme colors are aligned to the V2 palette in the existing Compose application. The full Android screen layout remains to be redesigned incrementally so existing APK inspection capabilities are preserved.
+- Verification: latest branch commits do not yet have an associated CI run. Do not treat web build, Android lint, unit tests, or device behavior as verified until CI and device checks complete.
