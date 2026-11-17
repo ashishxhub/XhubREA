@@ -1,6 +1,6 @@
 # XhubREA Development Tracker
 
-Last verified against main commit: `5c3efb3783a9ffb4f3ad466c8dc923d6c606d406`
+Last verified against main commit: pending latest CI for REA research workflow
 
 ## Status definitions
 - NOT_STARTED: no implementation exists.
@@ -39,8 +39,8 @@ Last verified against main commit: `5c3efb3783a9ffb4f3ad466c8dc923d6c606d406`
 | SDK dependency manifest for separate Python backend | IMPLEMENTED | `python/requirements-antigravity.txt`; excluded from Android/Chaquopy dependencies. |
 | Read-only optional adapter | IMPLEMENTED | `python/xhubrea_engine/antigravity_adapter.py`; opt-in flag, server-side API-key check, lazy import. |
 | Adapter safety guard tests | IMPLEMENTED | `python/tests/test_antigravity_adapter.py`; covers disabled-by-default, missing key and invalid prompts. |
-| Linux Python 3.12 SDK install/import smoke test | IN_PROGRESS | Dedicated GitHub Actions job added; await CI result. |
-| Live-agent authentication test | NOT_STARTED | Requires owner-provided Gemini API key; no secret is stored in GitHub source. |
+| Linux Python 3.12 SDK install/import smoke test | VERIFIED | GitHub Actions run 44094622362 passed on commit `35c75411f45e274ad92bfb4f3f968491ab5f4a48`. |
+| Optional authenticated backend API | VERIFIED | FastAPI endpoints `/health` and `/v1/agent/chat`; API auth, prompt bounds and rate-limit tests passed in run 44094622362. Latest research route is awaiting CI. |\n| Live-agent authentication test | NOT_STARTED | Requires owner-provided Gemini API key; no secret is stored in GitHub source. |
 | Android/Chaquopy compatibility | BLOCKED | SDK compiled runtime wheel compatibility with Android/Chaquopy is not established; keep SDK outside Android app. |
 
 ## Phase 3 — Remaining development roadmap
@@ -55,7 +55,7 @@ Last verified against main commit: `5c3efb3783a9ffb4f3ad466c8dc923d6c606d406`
 | Dependency and architecture graph | NOT_STARTED | Build from verified component/file evidence. |
 | Game research lab expansion | NOT_STARTED | Heuristic asset inventory and engine evidence. |
 | REA Detective evidence correlation | NOT_STARTED | Findings must retain evidence and confidence labels. |
-| AI assistant | NOT_STARTED | Requires explicit provider/key setup, consent, secure key storage and privacy disclosure; local deterministic explanations first. |
+| Evidence-grounded REA research workflow | IMPLEMENTED | `research_workflow.py` builds bounded prompts from operator-supplied evidence; `/v1/research/analyze` endpoint added. Latest CI pending. |\n| AI assistant | IN_PROGRESS | Optional Antigravity adapter and authenticated backend endpoints exist; live provider test and Android integration remain pending. |
 | Knowledge graph visualization | NOT_STARTED | Depends on normalized analysis model. |
 | Compare Intelligence | NOT_STARTED | Depends on normalized reports. |
 | PDF/HTML/JSON/CSV reports | NOT_STARTED | JSON first, then HTML/PDF; CSV only for tabular data. |
