@@ -33,7 +33,7 @@ describe("XhubREA backend client", () => {
   it("rejects empty prompts and invalid evidence counts", async () => {
     await expect(sendResearchMessage({ baseUrl: "https://api.example.com" }, "  "))
       .rejects.toThrow("cannot be empty");
-    await expect(structureResearchEvidence({ baseUrl: "https://api.example.com" }, []))
-      .rejects.toThrow("between 1 and 12");
+    expect(() => structureResearchEvidence({ baseUrl: "https://api.example.com" }, []))
+      .toThrow("between 1 and 12");
   });
 });
