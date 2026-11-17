@@ -1,6 +1,6 @@
 # XhubREA Web Dashboard
 
-A standalone React + Vite frontend workspace for the XhubREA project. It is intentionally kept separate from the existing native Android/Kotlin application so the current Android build is not disrupted.
+A standalone React + Vite frontend workspace for XhubREA, kept separate from the native Android/Kotlin application so web iteration does not disrupt Android builds.
 
 ## Run locally
 
@@ -12,19 +12,24 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite.
+## V2 frontend
 
-## Current scope
+The V2 visual direction is a dark, evidence-first research workspace with a responsive sidebar, research composer, intelligence module entry points, settings and help states.
 
-- Responsive, dark, ChatGPT-inspired workspace layout.
-- Sidebar navigation for the planned intelligence modules.
-- Prompt composer and local draft conversation state.
-- No backend, authentication, AI model, APK upload, or analysis engine is connected yet. The composer currently stores and displays the user's text locally only.
+See [../docs/FRONTEND_DESIGN.md](../docs/FRONTEND_DESIGN.md) and the [editable Figma design](https://www.figma.com/design/WNcsrmXau5nAC4SQWAKUDm).
 
-## Next integration steps
+## Current implementation boundaries
 
-1. Agree on API contracts between the web dashboard and XhubREA services.
-2. Add authentication and secure session handling.
-3. Connect authorized analysis jobs and evidence-backed reports.
-4. Add loading, error, cancellation and accessibility states.
-5. Add automated UI tests and run a production build.
+- Responsive React + Vite workspace and sidebar navigation.
+- Local preview conversation state and research composer.
+- Optional HTTPS backend health/chat integration through user-supplied settings.
+- Backend token remains in page memory only; it is not persisted in browser storage.
+- Intelligence module pages are currently frontend placeholders until their corresponding API workflows are connected.
+- APK selection, analysis jobs and report generation must be wired to verified backend contracts before being described as live functionality.
+
+## Checks
+
+```bash
+npm test -- --run
+npm run build
+```
