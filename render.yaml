@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: xhubrea-antigravity-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: XHUBREA_API_TOKEN
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: XHUBREA_ANTIGRAVITY_ENABLED
+        value: "1"
+      - key: XHUBREA_CORS_ORIGINS
+        value: "https://xhub-rea.vercel.app"
