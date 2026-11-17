@@ -113,3 +113,13 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Replace the compact top section tabs with a persistent bottom navigation bar.
 - [ ] Add a dedicated conversational Research Assistant (not yet implemented).
 - [ ] Verify Android compile, lint, emulator/device navigation and report export.
+
+
+### XhubREA 60-30-10 interface color system (2026-11-17)
+- [x] Applied the 60% base / 30% surface / 10% accent hierarchy to the editable Figma Web Dashboard and Android Home frames.
+- [x] Base: #0C0F15 for the main canvas and large background areas.
+- [x] Surfaces: #151A23 and #1A2230 for sidebars, cards, composers and raised panels.
+- [x] Accent: #6487FA for primary actions, active navigation and key highlights.
+- [x] Standardized supporting text (#EDF1F8 / #929EAF) and borders (#293241); removed competing decorative accent colors from the primary visual hierarchy.
+- [x] Added matching 60-30-10 token overrides to the web dashboard stylesheet.
+- [ ] Android runtime theme/build verification remains pending; Figma Android frame is a design reference and does not itself change the installed APK.
