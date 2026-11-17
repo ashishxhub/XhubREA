@@ -24,6 +24,7 @@ describe("XhubREA dashboard interactions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
     expect(screen.getByText("Explain this app architecture")).toBeInTheDocument();
     expect(screen.getByText(/configure a backend URL and temporary access token/)).toBeInTheDocument();
+    expect(screen.getByText(/The Antigravity backend is not connected yet/)).toBeInTheDocument();
   });
 
   it("opens and closes the help dialog", () => {
