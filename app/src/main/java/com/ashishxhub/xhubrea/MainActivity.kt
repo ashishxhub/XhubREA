@@ -9,8 +9,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import com.chaquo.python.Python
-import com.chaquo.python.android.AndroidPlatform
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -661,13 +659,7 @@ private fun XhubReaDashboard() {
                         scope.launch {
                             pythonEngineReport = withContext(Dispatchers.IO) {
                                 runCatching {
-                                    if (!Python.isStarted()) {
-                                        Python.start(AndroidPlatform(context.applicationContext))
-                                    }
-                                    Python.getInstance()
-                                        .getModule("xhubrea_engine")
-                                        .callAttr("analyze_apk_json", apkFile.absolutePath)
-                                        .toString()
+                                    PythonAnalysisBridge.analyze(context.applicationContext, apkFile)
                                 }.getOrElse {
                                     "Python analysis error: ${it.message ?: it.javaClass.simpleName}"
                                 }
@@ -725,14 +717,9 @@ private fun XhubReaDashboard() {
                                 moduleNames[8] to { analyzeApkSigningCertificates(context, apkFile) },
                                 moduleNames[9] to { ResearchLab.run(apkFile) },
                                 moduleNames[10] to {
-                                    if (!Python.isStarted()) {
-                                        Python.start(AndroidPlatform(context.applicationContext))
-                                    }
-                                    val raw = Python.getInstance()
-                                        .getModule("xhubrea_engine")
-                                        .callAttr("analyze_apk_json", apkFile.absolutePath)
-                                        .toString()
-                                    formatResourceIntelligenceReport(raw)
+                                    formatResourceIntelligenceReport(
+                                        PythonAnalysisBridge.analyze(context.applicationContext, apkFile)
+                                    )
                                 },
                                 moduleNames[11] to { NetworkIntelligenceAnalyzer.run(apkFile) },
                                 moduleNames[12] to { PrivacyIntelligenceAnalyzer.run(apkFile, networkIntelligenceReport) },
