@@ -150,6 +150,7 @@ export default function App() {
             <section className="section-view">
               <div className="page-heading"><div className="heading-icon">{active === "Settings" ? <Settings size={20} /> : activeItem ? <activeItem.icon size={20} /> : <Layers3 size={20} />}</div><div><span className="eyebrow-text">XHUBREA WORKSPACE</span><h1>{active}</h1><p>{activeItem?.description || "Manage your workspace preferences and preview settings."}</p></div></div>
               <div className="coming-card"><div className="coming-icon"><Clock3 size={20} /></div><div><span className="coming-label">MODULE PLACEHOLDER</span><h2>This workspace is being prepared</h2><p>The V2 interface is in place. Its analysis engine and connected data workflows will be added in later development stages.</p><button className="text-button" onClick={startNew}>Back to new analysis <span>→</span></button></div></div>
+              <div className="module-composer"><span className="eyebrow-text">START A LOCAL RESEARCH DRAFT</span><Composer prompt={prompt} setPrompt={setPrompt} sendMessage={sendMessage} placeholder={`Ask something about ${active.toLowerCase()}...`} /></div>
             </section>
           )}
           <footer className="page-footer"><span>© XhubREA</span><span className="footer-dot">•</span><span>Application intelligence workspace</span><span className="footer-spacer" /><span>Preview build · V2</span></footer>
