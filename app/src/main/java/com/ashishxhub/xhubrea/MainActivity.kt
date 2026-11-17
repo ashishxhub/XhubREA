@@ -401,34 +401,50 @@ private fun XhubReaDashboard() {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF17365F)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF151F31)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(22.dp)) {
-                    Text(
-                        text = "XhubREA",
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Understand apps. Build original ideas.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color(0xFFDCE7FF)
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = Color(0xFF24517A)
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "✦  STATIC APK INTELLIGENCE",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("XhubREA", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Text("Application intelligence workspace",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Surface(shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF142822)) {
+                            Text("● LOCAL", modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp),
+                                color = Color(0xFF4AC7A2), style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Spacer(Modifier.height(18.dp))
+                    Text("Understand apps. Build original ideas.",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.height(5.dp))
+                    Text("Analyze APK metadata, inspect structure and organize evidence — read-only.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFF202D43)) {
+                            Text("✦ APK INTELLIGENCE", modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                style = MaterialTheme.typography.labelSmall, color = Color(0xFF9DB6FF),
+                                fontWeight = FontWeight.Bold)
+                        }
+                        Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFF142822)) {
+                            Text("EVIDENCE FIRST", modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                style = MaterialTheme.typography.labelSmall, color = Color(0xFF4AC7A2),
+                                fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
