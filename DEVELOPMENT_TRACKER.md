@@ -47,7 +47,7 @@ Last verified against main commit: 0edb87875013cd8f2d3f6f1298feed6167316a8e (Pyt
 | Requirement | Status | Dependencies / notes |
 |---|---|---|
 | Python archive safety regression tests | VERIFIED | Added Windows absolute-path, symlink metadata, encrypted-entry metadata, archive limits, duplicate names, malformed input, and bounded resource inventory checks. Python workflow run 44098844747 passed on commit `0edb87875013cd8f2d3f6f1298feed6167316a8e`. |
-| Binary manifest parser fixture tests | NOT_STARTED | Add synthetic binary XML fixtures. |
+| Binary manifest parser fixture tests | VERIFIED | Added synthetic valid AXML string-pool/element fixture plus malformed header, wrong type, document-size, chunk-boundary, and string-offset tests. Android CI run 44099995219 passed lint, `testDebugUnitTest`, `assembleDebug`, and `bundleRelease` on commit `cb8d6834cc2c30ff28563154b99aa24da505c4d8`. |
 | Resource table/value decoder | NOT_STARTED | Requires bounded parser and format fixtures. |
 | DEX instruction metadata/disassembly | NOT_STARTED | Use maintained parser; metadata/disassembly only for authorized files, no execution. |
 | Hex and binary viewer | NOT_STARTED | Bounded paging; never load huge files fully into memory. |
@@ -72,4 +72,4 @@ Inspect -> implement one bounded module -> test -> build -> inspect logs -> fix 
 Do not mark a feature VERIFIED based only on the presence of code or a successful compile. Record CI verification separately from real-device verification.
 
 ## Current exact resume point
-Main commit `0edb87875013cd8f2d3f6f1298feed6167316a8e` has passing Python engine CI; Android CI is running for the same commit. Completed: strengthen Python archive-engine validation and regression tests. Next task: add fixture-based tests for the bounded binary AndroidManifest decoder, including valid chunks, malformed sizes, truncated data, and string-pool bounds.
+Main commit `cb8d6834cc2c30ff28563154b99aa24da505c4d8` has passing Android lint, unit tests, debug APK build, and unsigned release bundle build (workflow run 44099995219); Python archive-engine CI passed in run 44098844747 on commit `0edb87875013cd8f2d3f6f1298feed6167316a8e`. Completed: Python archive safety regression coverage and binary AndroidManifest decoder fixture tests. Next task: inspect and implement a bounded read-only Android resources.arsc table inventory/value decoder with strict chunk and string-pool limits.
