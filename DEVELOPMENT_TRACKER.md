@@ -1,6 +1,6 @@
 # XhubREA Development Tracker
 
-Last verified against main commit: pending latest CI for REA research workflow
+Last verified against main commit: 0edb87875013cd8f2d3f6f1298feed6167316a8e (Python engine CI passed; Android CI pending)
 
 ## Status definitions
 - NOT_STARTED: no implementation exists.
@@ -46,7 +46,7 @@ Last verified against main commit: pending latest CI for REA research workflow
 ## Phase 3 — Remaining development roadmap
 | Requirement | Status | Dependencies / notes |
 |---|---|---|
-| Python archive safety regression tests | IN_PROGRESS | Add path anomaly, archive limits, duplicate names, and malformed-input tests. |
+| Python archive safety regression tests | VERIFIED | Added Windows absolute-path, symlink metadata, encrypted-entry metadata, archive limits, duplicate names, malformed input, and bounded resource inventory checks. Python workflow run 44098844747 passed on commit `0edb87875013cd8f2d3f6f1298feed6167316a8e`. |
 | Binary manifest parser fixture tests | NOT_STARTED | Add synthetic binary XML fixtures. |
 | Resource table/value decoder | NOT_STARTED | Requires bounded parser and format fixtures. |
 | DEX instruction metadata/disassembly | NOT_STARTED | Use maintained parser; metadata/disassembly only for authorized files, no execution. |
@@ -72,4 +72,4 @@ Inspect -> implement one bounded module -> test -> build -> inspect logs -> fix 
 Do not mark a feature VERIFIED based only on the presence of code or a successful compile. Record CI verification separately from real-device verification.
 
 ## Current exact resume point
-Main commit `5c3efb3783a9ffb4f3ad466c8dc923d6c606d406` has a successful Android CI run. Next task: strengthen Python archive-engine validation and tests, then rerun Python CI and Android CI if shared packaging changes.
+Main commit `0edb87875013cd8f2d3f6f1298feed6167316a8e` has passing Python engine CI; Android CI is running for the same commit. Completed: strengthen Python archive-engine validation and regression tests. Next task: add fixture-based tests for the bounded binary AndroidManifest decoder, including valid chunks, malformed sizes, truncated data, and string-pool bounds.
