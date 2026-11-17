@@ -153,5 +153,48 @@ class ApkEngineTests(unittest.TestCase):
         self.assertIn("resource_intelligence", report)
 
 
+    def test_detects_multidigit_dex_files(self):
+        path = self.make_apk([
+            ("classes.dex", b"one"),
+            ("classes2.dex", b"two"),
+            ("classes9.dex", b"nine"),
+            ("classes10.dex", b"ten"),
+            ("classes21.dex", b"twenty-one"),
+            ("classes1.dex", b"not-standard"),
+        ])
+        report = analyze_apk(path)
+        self.assertEqual(
+            report["dex"]["files"],
+            ["classes.dex", "classes10.dex", "classes2.dex", "classes21.dex", "classes9.dex"],
+        )
+
+    def test_detects_windows_drive_and_nested_traversal_paths(self):
+        path = self.make_apk([
+            ("C:\\outside\\payload.bin", b"drive"),
+            ("assets/../../outside.bin", b"traversal"),
+            ("assets/safe.bin", b"safe"),
+        ])
+        report = analyze_apk(path)
+        self.assertIn("C:\\outside\\payload.bin", report["path_safety_warnings"])
+        self.assertIn("assets/../../outside.bin", report["path_safety_warnings"])
+        self.assertNotIn("assets/safe.bin", report["path_safety_warnings"])
+
+    def test_limits_path_and_duplicate_warning_output(self):
+        entries = [(f"../outside-{index}.bin", b"x") for index in range(105)]
+        entries += [(f"dup-{index}.bin", b"x") for index in range(2)]
+        path = self.make_apk(entries)
+        report = analyze_apk(path)
+        self.assertEqual(len(report["path_safety_warnings"]), 100)
+        self.assertEqual(len(report["duplicate_entry_warnings"]), 0)
+
+    def test_rejects_truncated_zip_container(self):
+        handle = tempfile.NamedTemporaryFile(suffix=".apk", delete=False)
+        handle.write(b"PK\\x03\\x04truncated-container")
+        handle.close()
+        self.addCleanup(lambda: os.path.exists(handle.name) and os.unlink(handle.name))
+        with self.assertRaisesRegex(ValueError, "valid APK/ZIP"):
+            analyze_apk(handle.name)
+
+
 if __name__ == "__main__":
     unittest.main()
