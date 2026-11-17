@@ -22,3 +22,9 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
 .module-composer{margin-top:25px}.module-composer>.eyebrow-text{display:block;padding:0;margin:0 0 9px}.module-composer .composer{margin:0;max-width:none}
+
+
+/* Accessibility and responsive navigation refinements */
+.menu-button{display:none}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #b5a1f4;outline-offset:3px}
+@media(max-width:760px){.menu-button{display:grid}}
