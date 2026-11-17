@@ -73,3 +73,21 @@ Do not mark a feature VERIFIED based only on the presence of code or a successfu
 
 ## Current exact resume point
 Latest main commit `e6c7c4ade6a01e65bf952c21aaa3be2f89257d62` adds the initial bounded read-only `resources.arsc` metadata decoder and fixture tests. Android CI run 44101181501 is currently in progress. Previous Android CI run 44100550499 passed on commit `41eb0f2bc77c5b2f231069d74d31cad82a03c77d`. Python archive safety regression tests and binary AndroidManifest decoder fixture tests are complete and previously verified. Current task: finish resource-table decoder verification, correct any CI failures, then connect the report to the APK analysis flow.
+
+
+## Frontend V2 implementation update — 2026-11-17
+
+| Deliverable | Status | Evidence / remaining work |
+|---|---|---|
+| Editable Figma desktop dashboard | IMPLEMENTED | 1440×980 frame, editable layers. |
+| Editable Figma Android home reference | IMPLEMENTED | 390×844 frame, editable layers. |
+| Web dashboard V2 visual tokens | IMPLEMENTED | Updated web-dashboard/src/styles.css on feat/xhubrea-v2-frontend-design; existing React navigation, composer, settings and help states retained. |
+| Android Compose V2 palette alignment | IMPLEMENTED | Updated Material 3 color scheme in MainActivity.kt; existing APK inspection workflows were preserved. |
+| Frontend design handoff | IMPLEMENTED | docs/FRONTEND_DESIGN.md. |
+| Pull request | IN_PROGRESS | PR #20 is open; not merged. |
+| Web production build and UI tests for this branch | NOT_VERIFIED | No workflow run is currently associated with the latest frontend commit. Run GitHub Actions and fix any failures before merge. |
+| Android lint, unit tests and debug APK for this branch | NOT_VERIFIED | Theme-only Kotlin change has not yet been built in CI or on a device. |
+| Android screen layout redesign to match the Figma home frame | NOT_STARTED | Current Android dashboard is feature-rich and should be redesigned incrementally without removing existing APK-analysis functions. |
+| Backend-connected end-to-end UI verification | NOT_STARTED | Requires deployed API endpoint, owner-managed token and device/browser testing. |
+
+The V2 Android change so far is a Material 3 color-token alignment only. It does not claim that the entire Compose screen has been redesigned to match the Figma mobile frame.
