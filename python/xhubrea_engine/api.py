@@ -10,6 +10,7 @@ from __future__ import annotations
 import hmac
 import os
 import time
+import threading
 from collections import deque
 from typing import Annotated
 
@@ -44,6 +45,7 @@ if _allowed_origins:
 
 MAX_REQUESTS_PER_MINUTE = 10
 _request_times: deque[float] = deque()
+_rate_limit_lock = threading.Lock()
 
 
 class AgentChatRequest(BaseModel):
@@ -102,14 +104,16 @@ def require_api_token(authorization: Annotated[str | None, Header()] = None) -> 
 def _enforce_rate_limit(now: float | None = None) -> None:
     """Apply a conservative process-local cap; deployments should add gateway limits."""
     current = time.monotonic() if now is None else now
-    while _request_times and current - _request_times[0] >= 60:
-        _request_times.popleft()
-    if len(_request_times) >= MAX_REQUESTS_PER_MINUTE:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Rate limit reached. Try again in a minute.",
-        )
-    _request_times.append(current)
+    # A lock keeps the in-process rolling window consistent under concurrent requests.
+    with _rate_limit_lock:
+        while _request_times and current - _request_times[0] >= 60:
+            _request_times.popleft()
+        if len(_request_times) >= MAX_REQUESTS_PER_MINUTE:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Rate limit reached. Try again in a minute.",
+            )
+        _request_times.append(current)
 
 
 @app.get("/health")
@@ -176,6 +180,7 @@ async def research_analyze(payload: ResearchAnalyzeRequest) -> ResearchAnalyzeRe
 )
 async def research_structure(payload: ResearchStructureRequest) -> dict:
     """Return deterministic evidence labels and source groupings; no AI inference."""
+    _enforce_rate_limit()
     try:
         return structure_findings([finding.model_dump() for finding in payload.findings])
     except ValueError as exc:
