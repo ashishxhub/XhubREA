@@ -67,8 +67,9 @@ class ApiAuthTests(unittest.TestCase):
             "observation": "Network permission declared",
             "confidence": "medium",
         }])
-        with self.assertRaises(HTTPException) as caught:
-            asyncio.run(research_structure(payload))
+        with patch("xhubrea_engine.api.time.monotonic", return_value=210):
+            with self.assertRaises(HTTPException) as caught:
+                asyncio.run(research_structure(payload))
         self.assertEqual(caught.exception.status_code, 429)
 
 
