@@ -176,3 +176,17 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Live end-to-end request remains unverified; requires a deployed backend, configured CORS origin, server-side API token, enabled Antigravity provider and owner-managed credentials.
 - [ ] Android currently remains local report-based research; it is not yet connected to this remote API.
 - Implementation commit: `a1cc92e780527bc2918ac491945863b285410f33`.
+
+
+### Backend Integration Phase 2 — shared contract and client security boundary (2026-11-18)
+- [x] Inspected the current FastAPI endpoints, web API client/tests, Android manifest/build setup and existing API tests.
+- [x] Added `docs/BACKEND_INTEGRATION.md` documenting the shared route contract, request/response shapes, validation, error codes, CORS, transport and platform responsibilities.
+- [x] Recorded that `GET /health` is public and only proves process reachability; it does not prove authenticated or AI-ready status.
+- [x] Documented the current shared bearer-token limitation and explicitly prohibited embedding the server token in Android APKs or browser-persisted storage.
+- [x] Identified that rate limiting currently applies to chat/analyze but not evidence-structure; gateway limits are required before public deployment.
+- [x] Kept Android remote networking on hold until user-scoped authentication/short-lived scoped sessions are designed; local/offline research remains the current Android behavior.
+- [ ] Add gateway-level rate limiting and production user authentication before public exposure.
+- [ ] Add Android remote API client only after the authentication contract is implemented.
+- [ ] Run targeted Python/Web tests and CI for the new contract commit; no test run has yet been confirmed for this documentation-only update.
+- [ ] Deploy HTTPS backend, configure exact CORS origins and server-managed credentials, then run authenticated end-to-end tests.
+- Documentation commit: `ebb6b8cf9421976ff3de720dc2fb3627b8cdd050`.
