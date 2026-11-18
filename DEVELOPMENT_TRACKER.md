@@ -141,3 +141,11 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Move Overview's legacy top tabs into the bottom bar so navigation placement is consistent on every destination.
 - [ ] Run Kotlin compile, Android lint, unit tests, emulator/device navigation and report-export checks; not yet verified.
 - Implementation commit: `cae1062cf2fa45978b6e6ddb98f791209de079b5`.
+
+
+### Android navigation consistency follow-up (2026-11-18)
+- [x] Removed the Overview screen's legacy top tabs.
+- [x] Added the persistent bottom bar to Overview, matching APK, Research, Reports and Settings.
+- [x] Kept the overview analysis workspace scrollable above the navigation bar.
+- [ ] Run Kotlin compile, Android lint, unit tests and emulator/device checks; not yet verified.
+- Implementation commit: `3dd7ea20745a6e5f5ac055769cf07da404af61e6`.
