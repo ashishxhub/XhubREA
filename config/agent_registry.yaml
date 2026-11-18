@@ -1,0 +1,258 @@
+version: 1
+organization: XhubREA
+total_roles: 51
+default_mode: on_demand
+default_permission: read_only
+owner_approval_required:
+  - production_deployment
+  - merge_to_main
+  - secret_access
+  - external_data_processing
+  - paid_service_or_spending
+  - destructive_operation
+  - release_signing
+departments:
+  - id: management
+    name: Management and Planning
+    lead: chief_ai_coordinator
+    roles:
+      - id: chief_ai_coordinator
+        title: Chief AI Coordinator
+        reports_to: owner
+        purpose: Convert owner goals into bounded plans and coordinate departments.
+      - id: project_manager
+        title: Project Manager
+        reports_to: chief_ai_coordinator
+        purpose: Track tasks, dependencies, milestones, estimates, and blockers.
+      - id: delivery_manager
+        title: Delivery Manager
+        reports_to: project_manager
+        purpose: Coordinate release readiness and delivery checklists.
+      - id: product_strategist
+        title: Product Strategist
+        reports_to: project_manager
+        purpose: Maintain product scope, user outcomes, and prioritization.
+      - id: operations_analyst
+        title: Operations Analyst
+        reports_to: project_manager
+        purpose: Monitor workflow health, cost, latency, and capacity.
+  - id: research
+    name: Research and Intelligence
+    lead: research_lead
+    roles:
+      - id: research_lead
+        title: Research Lead
+        reports_to: chief_ai_coordinator
+        purpose: Coordinate evidence-based technical research.
+      - id: technology_researcher
+        title: Technology Researcher
+        reports_to: research_lead
+        purpose: Research frameworks, formats, and documented capabilities.
+      - id: application_researcher
+        title: Application Researcher
+        reports_to: research_lead
+        purpose: Summarize authorized application structure and behavior evidence.
+      - id: game_researcher
+        title: Game Researcher
+        reports_to: research_lead
+        purpose: Inventory authorized game assets and engine indicators.
+      - id: documentation_researcher
+        title: Documentation Researcher
+        reports_to: research_lead
+        purpose: Find and summarize official technical documentation.
+      - id: competitor_analyst
+        title: Competitor Analyst
+        reports_to: research_lead
+        purpose: Compare public product capabilities and positioning.
+      - id: evidence_analyst
+        title: Evidence Analyst
+        reports_to: research_lead
+        purpose: Link claims to source evidence and confidence labels.
+  - id: architecture
+    name: Architecture and Engineering Design
+    lead: systems_architect
+    roles:
+      - id: systems_architect
+        title: Systems Architect
+        reports_to: chief_ai_coordinator
+        purpose: Define system boundaries, interfaces, and technical decisions.
+      - id: android_architect
+        title: Android Architect
+        reports_to: systems_architect
+        purpose: Design Android modules, lifecycle, storage, and app boundaries.
+      - id: web_architect
+        title: Web Architect
+        reports_to: systems_architect
+        purpose: Design web application structure and API integration.
+      - id: backend_architect
+        title: Backend Architect
+        reports_to: systems_architect
+        purpose: Design services, API contracts, persistence, and deployment topology.
+      - id: data_architect
+        title: Data Architect
+        reports_to: systems_architect
+        purpose: Design normalized evidence and project data models.
+      - id: integration_architect
+        title: Integration Architect
+        reports_to: systems_architect
+        purpose: Define provider-neutral interfaces and module integration contracts.
+  - id: backend
+    name: Backend Development
+    lead: backend_lead
+    roles:
+      - id: backend_lead
+        title: Backend Lead
+        reports_to: systems_architect
+        purpose: Coordinate backend implementation and reviews.
+      - id: api_engineer
+        title: API Engineer
+        reports_to: backend_lead
+        purpose: Implement authenticated, versioned API endpoints.
+      - id: python_engineer
+        title: Python Engineer
+        reports_to: backend_lead
+        purpose: Implement bounded Python services and analysis modules.
+      - id: database_engineer
+        title: Database Engineer
+        reports_to: backend_lead
+        purpose: Implement schemas, migrations, and data access.
+      - id: infrastructure_engineer
+        title: Infrastructure Engineer
+        reports_to: backend_lead
+        purpose: Configure reproducible development and deployment infrastructure.
+      - id: backend_integration_engineer
+        title: Backend Integration Engineer
+        reports_to: backend_lead
+        purpose: Integrate service modules and provider adapters.
+  - id: android
+    name: Android Development
+    lead: android_lead
+    roles:
+      - id: android_lead
+        title: Android Lead
+        reports_to: systems_architect
+        purpose: Coordinate Android implementation and quality.
+      - id: kotlin_engineer
+        title: Kotlin Engineer
+        reports_to: android_lead
+        purpose: Implement Kotlin domain and platform logic.
+      - id: compose_engineer
+        title: Compose UI Engineer
+        reports_to: android_lead
+        purpose: Implement accessible Jetpack Compose screens.
+      - id: android_testing_engineer
+        title: Android Testing Engineer
+        reports_to: android_lead
+        purpose: Implement unit, UI, and device tests.
+      - id: android_performance_engineer
+        title: Android Performance Engineer
+        reports_to: android_lead
+        purpose: Profile memory, responsiveness, and cancellation behavior.
+  - id: web
+    name: Web Development
+    lead: web_lead
+    roles:
+      - id: web_lead
+        title: Web Lead
+        reports_to: systems_architect
+        purpose: Coordinate web implementation and quality.
+      - id: frontend_engineer
+        title: Frontend Engineer
+        reports_to: web_lead
+        purpose: Implement typed frontend components and state.
+      - id: web_api_engineer
+        title: Web API Engineer
+        reports_to: web_lead
+        purpose: Implement safe API client and connection flows.
+      - id: web_accessibility_engineer
+        title: Web Accessibility Engineer
+        reports_to: web_lead
+        purpose: Validate keyboard, screen reader, contrast, and motion behavior.
+      - id: web_testing_engineer
+        title: Web Testing Engineer
+        reports_to: web_lead
+        purpose: Implement frontend unit and integration tests.
+  - id: ai_ml
+    name: AI and Machine Learning
+    lead: ai_lead
+    roles:
+      - id: ai_lead
+        title: AI Lead
+        reports_to: chief_ai_coordinator
+        purpose: Govern model selection, prompts, evaluation, and provider integration.
+      - id: agent_engineer
+        title: Agent Engineer
+        reports_to: ai_lead
+        purpose: Implement role execution, routing, and bounded tool access.
+      - id: prompt_engineer
+        title: Prompt Engineer
+        reports_to: ai_lead
+        purpose: Maintain task-specific instructions and structured output contracts.
+      - id: model_evaluation_engineer
+        title: Model Evaluation Engineer
+        reports_to: ai_lead
+        purpose: Evaluate accuracy, safety, latency, and cost.
+      - id: intelligence_engineer
+        title: Intelligence Engineer
+        reports_to: ai_lead
+        purpose: Build evidence normalization and relationship analysis.
+      - id: ai_integration_engineer
+        title: AI Integration Engineer
+        reports_to: ai_lead
+        purpose: Integrate provider adapters without leaking credentials.
+  - id: design
+    name: UI UX and Design
+    lead: design_lead
+    roles:
+      - id: design_lead
+        title: Design Lead
+        reports_to: project_manager
+        purpose: Coordinate product experience and design consistency.
+      - id: ux_researcher
+        title: UX Researcher
+        reports_to: design_lead
+        purpose: Identify user needs and workflow friction.
+      - id: ui_designer
+        title: UI Designer
+        reports_to: design_lead
+        purpose: Define visual patterns, components, and responsive layouts.
+  - id: quality_security
+    name: Quality and Security
+    lead: quality_lead
+    roles:
+      - id: quality_lead
+        title: Quality Lead
+        reports_to: chief_ai_coordinator
+        purpose: Set acceptance criteria and verification standards.
+      - id: qa_engineer
+        title: QA Engineer
+        reports_to: quality_lead
+        purpose: Run focused tests and regression checks.
+      - id: security_auditor
+        title: Security Auditor
+        reports_to: quality_lead
+        purpose: Review authorization, data handling, and attack surface defensively.
+      - id: code_reviewer
+        title: Code Reviewer
+        reports_to: quality_lead
+        purpose: Review maintainability, correctness, and change scope.
+      - id: release_validator
+        title: Release Validator
+        reports_to: quality_lead
+        purpose: Verify release artifacts and evidence before owner approval.
+  - id: documentation_release
+    name: Documentation and Release
+    lead: documentation_lead
+    roles:
+      - id: documentation_lead
+        title: Documentation Lead
+        reports_to: project_manager
+        purpose: Coordinate technical and user-facing documentation.
+      - id: technical_writer
+        title: Technical Writer
+        reports_to: documentation_lead
+        purpose: Maintain setup guides, architecture records, and API docs.
+      - id: release_coordinator
+        title: Release Coordinator
+        reports_to: documentation_lead
+        purpose: Prepare release notes and owner approval checklist.
