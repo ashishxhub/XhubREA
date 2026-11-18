@@ -162,10 +162,10 @@ class TaskStore:
         if not self.execution_enabled:
             raise TaskStoreError("task execution is disabled; enable only after owner review")
         task = self.get_task(task_id)
-        if task["status"] not in {"queued", "approved", "failed"}:
-            raise TaskStoreError("task cannot start from its current status")
         if task["approval_gates"] and task["status"] != "approved":
             raise TaskStoreError("owner approval is required before execution")
+        if task["status"] not in {"queued", "approved", "failed"}:
+            raise TaskStoreError("task cannot start from its current status")
         if task["attempts"] > task["max_retries"]:
             raise TaskStoreError("task retry limit has been reached")
         now = _utc_now()
