@@ -96,6 +96,9 @@ class GuardedExecutor:
         if not goal or len(goal) > MAX_GOAL_LENGTH:
             raise ValueError("task goal is empty or exceeds the execution bound")
 
+        if isinstance(self.executor, DisabledExecutor):
+            raise ExecutorDisabledError("No executor is configured. Agent execution remains disabled.")
+
         # Start/audit through the task store before handing off to an injected executor.
         self.task_store.start_task(task_id, actor_id=actor_id)
         request = ExecutionRequest(
@@ -105,6 +108,8 @@ class GuardedExecutor:
             result = self.executor.execute(request)
             if not isinstance(result, ExecutionResult):
                 raise TypeError("executor must return an ExecutionResult")
+            if not isinstance(result.succeeded, bool):
+                raise TypeError("executor result succeeded flag must be boolean")
             if not isinstance(result.summary, str):
                 raise TypeError("executor result summary must be text")
             summary = result.summary[:MAX_RESULT_LENGTH]
