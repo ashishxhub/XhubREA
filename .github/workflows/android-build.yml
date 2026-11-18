@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "feature/antigravity-render-deployment" ]
   workflow_dispatch:
 
 permissions:
