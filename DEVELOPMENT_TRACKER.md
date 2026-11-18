@@ -9,7 +9,7 @@
 | Provider-neutral task coordinator | VERIFIED | `python/xhubrea_engine/coordinator.py` routes goals to a department and specialist role templates, adds owner-approval gates, and returns a plan-only result. `unittest` suite passed in Python CI run 44233543429 (test job). No agent is executed or dispatched yet. |\n| Task execution/dispatch engine | NOT_STARTED | Next: add persistent task state, explicit owner approval workflow, bounded executor interface, retries/timeouts, and audit events. Keep execution disabled until reviewed. |
 | Live Antigravity-backed pilot team | NOT_STARTED | Requires owner-managed backend credentials and end-to-end verification. |
 
-Latest agent-organization implementation: registry loader and plan-only coordinator are VERIFIED by Python CI test job in run 44233543429. The separate Antigravity SDK install-smoke job and Android workflow run 44233543815 were still in progress at the time of this update. Android CI run 44101181501 is in progress; do not treat the resource-table decoder as verified until it passes.
+Latest agent-organization verification: all Python jobs in run 44233543429 passed, including unit tests and Antigravity SDK import smoke test. Android workflow run 44233543815 passed lint and unit tests; APK/bundle build was still running at last check. New task-store tests are awaiting a fresh Python CI run.
 
 ## Status definitions
 - NOT_STARTED: no implementation exists.
