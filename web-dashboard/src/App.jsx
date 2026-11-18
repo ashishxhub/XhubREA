@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { checkBackendHealth, sendResearchMessage } from "./api.js";
+import { checkBackendHealth, sendResearchMessage, compareAppSnapshots } from "./api.js";
 import {
   Activity, AppWindow, ArrowUp, Bot, ChevronDown, CircleHelp,
   FileSearch, FolderOpen, LockKeyhole, Menu, Plus, Search,
@@ -11,6 +11,7 @@ const navGroups = [
   { title: "WORKSPACE", items: [
     { label: "New analysis", icon: Plus, description: "Start a fresh, evidence-led research session." },
     { label: "Application intelligence", icon: AppWindow, description: "Explore application structure, components and dependencies." },
+    { label: "App comparison", icon: Layers3, description: "Compare two caller-supplied application metadata inventories." },
     { label: "Research assistant", icon: Bot, description: "Organize technical questions and research notes." },
     { label: "Antigravity Agent", icon: Sparkles, description: "Use the Google Antigravity-powered research agent through your secure XhubREA backend." },
     { label: "Reports", icon: FolderOpen, description: "Review and organize analysis reports." }
@@ -42,6 +43,12 @@ export default function App() {
   const [connectionStatus, setConnectionStatus] = useState("Not connected");
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const emptySnapshot = { app_label: "", permissions: [], components: [], source_structure: [], dependencies: [], architecture: [] };
+  const [compareA, setCompareA] = useState({ ...emptySnapshot, app_label: "Application A" });
+  const [compareB, setCompareB] = useState({ ...emptySnapshot, app_label: "Application B" });
+  const [comparisonResult, setComparisonResult] = useState(null);
+  const [comparisonError, setComparisonError] = useState("");
+  const [isComparing, setIsComparing] = useState(false);
 
   useEffect(() => {
     if (!helpOpen) return undefined;
@@ -94,6 +101,19 @@ export default function App() {
     } finally {
       setIsSending(false);
     }
+  }
+
+  async function runAppComparison() {
+    setComparisonError(""); setComparisonResult(null);
+    if (!backendUrl.trim() || !apiToken.trim()) { setComparisonError("Connect the backend and add a temporary API access token in Settings first."); return; }
+    setIsComparing(true);
+    try { setComparisonResult(await compareAppSnapshots({ baseUrl: backendUrl, token: apiToken }, compareA, compareB)); }
+    catch (error) { setComparisonError(error.message || "App comparison failed."); }
+    finally { setIsComparing(false); }
+  }
+
+  function updateSnapshot(setter, category, rawValue) {
+    setter(current => ({ ...current, [category]: category === "app_label" ? rawValue : rawValue.split("\n").map(value => value.trim()).filter(Boolean) }));
   }
 
   function selectPage(label) {
@@ -192,7 +212,30 @@ export default function App() {
           ) : (
             <section className="section-view">
               <div className="page-heading"><div className="heading-icon">{active === "Settings" ? <Settings size={20} /> : activeItem ? <activeItem.icon size={20} /> : <Layers3 size={20} />}</div><div><span className="eyebrow-text">XHUBREA WORKSPACE</span><h1>{active}</h1><p>{activeItem?.description || "Manage your workspace preferences and preview settings."}</p></div></div>
-              {active === "Antigravity Agent" ? (
+              {active === "App comparison" ? (
+                <div className="coming-card backend-settings">
+                  <div className="coming-icon"><Layers3 size={20} /></div>
+                  <div>
+                    <span className="coming-label">METADATA-ONLY COMPARISON</span>
+                    <h2>Compare two applications</h2>
+                    <p>Enter inventories you already have permission to share. One label per line. XhubREA compares supplied metadata only; it does not upload, open, or execute APKs.</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
+                      {[{ title: "Application A", value: compareA, setter: setCompareA }, { title: "Application B", value: compareB, setter: setCompareB }].map(item => (
+                        <div key={item.title}>
+                          <h3>{item.title}</h3>
+                          <label className="settings-field">App label<input value={item.value.app_label} onChange={event => updateSnapshot(item.setter, "app_label", event.target.value)} maxLength={300} /></label>
+                          {[[ "permissions", "Permissions" ], [ "components", "Components" ], [ "source_structure", "Source structure" ], [ "dependencies", "Dependencies" ], [ "architecture", "Architecture" ]].map(([key, label]) => (
+                            <label className="settings-field" key={key}>{label}<textarea rows={3} value={item.value[key].join("\n")} onChange={event => updateSnapshot(item.setter, key, event.target.value)} placeholder="One item per line" /></label>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                    <button className="modal-primary" onClick={runAppComparison} disabled={isComparing}>{isComparing ? "Comparing…" : "Compare applications"}</button>
+                    {comparisonError && <p role="alert">{comparisonError}</p>}
+                    {comparisonResult && <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", padding: 16, borderRadius: 12, background: "var(--surface, #f4f5f7)", maxHeight: 480, overflow: "auto" }}>{JSON.stringify(comparisonResult, null, 2)}</pre>}
+                  </div>
+                </div>
+              ) : active === "Antigravity Agent" ? (
                 <div className="coming-card backend-settings">
                   <div className="coming-icon"><Sparkles size={20} /></div>
                   <div>
