@@ -200,4 +200,4 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] The in-process limiter is per worker/process and is not a substitute for shared gateway limits in production.
 - [ ] Public production authentication remains blocked on replacing the shared bearer token with user-scoped sessions.
 - API implementation commit: `668ade89e5f155b0ab9670f3549030a15cb66e1a`.
-- Test commit: `8e692fb8b1fa9fd3d5a7765b2c1f92979447ed49`.
+- Test commits: `8e692fb8b1fa9fd3d5a7765b2c1f92979447ed49`, `577141972308a0b6d657706521f244fc778fe147` (made the endpoint rate-limit test clock deterministic).
