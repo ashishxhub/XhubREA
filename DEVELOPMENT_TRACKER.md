@@ -55,7 +55,7 @@ Latest implementation commit: e6c7c4ade6a01e65bf952c21aaa3be2f89257d62. Android 
 | Dependency and architecture graph | NOT_STARTED | Build from verified component/file evidence. |
 | Game research lab expansion | NOT_STARTED | Heuristic asset inventory and engine evidence. |
 | REA Detective evidence correlation | NOT_STARTED | Findings must retain evidence and confidence labels. |
-| Evidence-grounded REA research workflow | VERIFIED | `research_workflow.py` builds bounded prompts from operator-supplied evidence; `/v1/research/analyze` endpoint and unit tests passed in run 44095412888. |\n| Structured Intelligence Engine | IMPLEMENTED | `intelligence.py` labels operator observations, confidence tiers, groups same-source evidence without causal claims; `/v1/research/structure` added. Python CI run 44095951345 passed after correction; latest endpoint commit still awaits CI. |\n| Web dashboard API client | IMPLEMENTED | HTTPS-enforcing API client, health check, authenticated chat and evidence-structure calls, Vitest coverage. Latest Web CI pending. |\n| Web dashboard connection settings | IMPLEMENTED | User-entered backend URL and temporary token held in page memory only; token is not persisted. Backend CORS uses explicit origin allowlist. Latest Web CI pending. |\n| AI assistant | IN_PROGRESS | Optional Antigravity adapter and authenticated backend endpoints exist; live provider test and Android integration remain pending. |
+| Evidence-grounded REA research workflow | VERIFIED | `research_workflow.py` builds bounded prompts from operator-supplied evidence; `/v1/research/analyze` endpoint and unit tests passed in run 44095412888. |\n| Structured Intelligence Engine | IMPLEMENTED | `intelligence.py` labels operator observations, confidence tiers, groups same-source evidence without causal claims; `/v1/research/structure` added. Python CI run 44095951345 passed after correction; security/rate-limit regression suite subsequently passed in run `44234291071`. |\n| Web dashboard API client | IMPLEMENTED | HTTPS-enforcing API client, health check, authenticated chat and evidence-structure calls, Vitest coverage. Latest Web CI pending. |\n| Web dashboard connection settings | IMPLEMENTED | User-entered backend URL and temporary token held in page memory only; token is not persisted. Backend CORS uses explicit origin allowlist. Latest Web CI pending. |\n| AI assistant | IN_PROGRESS | Optional Antigravity adapter and authenticated backend endpoints exist; live provider test and Android integration remain pending. |
 | Knowledge graph visualization | NOT_STARTED | Depends on normalized analysis model. |
 | Compare Intelligence | NOT_STARTED | Depends on normalized reports. |
 | PDF/HTML/JSON/CSV reports | NOT_STARTED | JSON first, then HTML/PDF; CSV only for tabular data. |
@@ -183,7 +183,7 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [x] Added `docs/BACKEND_INTEGRATION.md` documenting the shared route contract, request/response shapes, validation, error codes, CORS, transport and platform responsibilities.
 - [x] Recorded that `GET /health` is public and only proves process reachability; it does not prove authenticated or AI-ready status.
 - [x] Documented the current shared bearer-token limitation and explicitly prohibited embedding the server token in Android APKs or browser-persisted storage.
-- [x] Identified that rate limiting currently applies to chat/analyze but not evidence-structure; gateway limits are required before public deployment.
+- [x] Closed the evidence-structure rate-limit gap; all three protected routes now use the process-local limiter. Gateway limits are still required before public deployment.
 - [x] Kept Android remote networking on hold until user-scoped authentication/short-lived scoped sessions are designed; local/offline research remains the current Android behavior.
 - [ ] Add gateway-level rate limiting and production user authentication before public exposure.
 - [ ] Add Android remote API client only after the authentication contract is implemented.
@@ -209,10 +209,22 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [x] Added a guard confirming `/health` remains public and is not an authenticated readiness signal.
 - [x] Added `docs/SECURITY_TEST_REPORT.md` with findings, risk ratings, safe test scope and release gates.
 - [x] Corrected backend contract documentation: the rolling limiter now covers chat, analyze and evidence-structure endpoints.
-- [ ] Python CI execution for the new tests is pending; do not mark security tests VERIFIED until Actions passes.
+- [x] Python security regression suite passed in GitHub Actions run `44234291071`: 42 unit tests passed; optional Antigravity SDK import smoke test also succeeded.
 - [ ] **Critical release blocker:** shared bearer token is not end-user identity. User-specific profiles/projects/reports and server-enforced ownership isolation are not implemented.
 - [ ] OIDC + PKCE, verified user claims, ownership filters/database row-level controls, and cross-account negative tests remain required before multi-user public release.
 - [ ] Gateway-level distributed rate limits, production HTTPS, secret management, audit logging and deployment checks remain outstanding.
 - Security regression tests commit: `62161440035bb6ef5fc7f8ca14f7bf66e35ed037`.
 - Security report commit: `3eb82bb50522a197e15a80df992fede27f73a871`.
 - Backend contract correction commit: `ec6d0b3a34d99e86d78f3f3a79eb707b42028edd`.
+
+
+### Security regression test result (2026-11-18)
+- [x] Python workflow run `44234291071` passed on code commit `4dd5cb2b2efa1ed5c0b24dbe9237774516bce366`.
+- [x] 42 Python unit tests passed, including malformed bearer-header rejection, protected-route dependency registration, public health-route boundary and rate-limit checks.
+- [x] Optional Antigravity SDK import smoke test passed in the same workflow.
+- [x] Corrected FastAPI dependency inspection after the first CI attempt exposed an incorrect test assumption; rerun passed.
+- [ ] This is regression-test verification only, not a penetration test.
+- [ ] Multi-user isolation remains **NOT IMPLEMENTED**: no verified user identity or per-resource owner checks exist yet. Do not release multi-user accounts until cross-account negative tests pass.
+- [ ] Production deployment controls (OIDC/PKCE, HTTPS, distributed gateway limits, secret management, audit logging) remain outstanding.
+- Python workflow: https://github.com/ashishxhub/XhubREA/actions/runs/44234291071
+- Test-fix commit: `4dd5cb2b2efa1ed5c0b24dbe9237774516bce366`.
