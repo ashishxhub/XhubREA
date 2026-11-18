@@ -71,11 +71,7 @@ class ResearchApiClient(
             val trimmed = value.trim().trimEnd('/')
             require(trimmed.isNotEmpty()) { "Backend URL is required." }
             val parsed = URL(trimmed)
-            val localHost = parsed.host.equals("localhost", true) ||
-                parsed.host == "127.0.0.1" || parsed.host == "10.0.2.2"
-            require(parsed.protocol == "https" || (localHost && parsed.protocol == "http")) {
-                "Use HTTPS for remote backend connections."
-            }
+            require(parsed.protocol == "https") { "Use HTTPS for the backend connection." }
             require(parsed.userInfo == null && parsed.query == null && parsed.ref == null) {
                 "Backend URL must not contain credentials, query parameters, or fragments."
             }
