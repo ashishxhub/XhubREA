@@ -168,3 +168,11 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Record device model, Android version, screenshots/logcat for any issue, then fix and rerun CI. Do not mark runtime QA VERIFIED from build success alone.
 - Debug APK workflow run: https://github.com/ashishxhub/XhubREA/actions/runs/44231955958
 - Web workflow run: https://github.com/ashishxhub/XhubREA/actions/runs/44231956061
+
+
+### Web-to-backend integration UX guard (2026-11-18)
+- [x] Fixed the Research Composer's unconfigured-backend path: it now returns an explicit assistant message explaining that the question stayed in local preview and was not sent to an AI service.
+- [x] Gives clear next steps to configure a deployed HTTPS backend and temporary bearer token in Settings.
+- [ ] Live end-to-end request remains unverified; requires a deployed backend, configured CORS origin, server-side API token, enabled Antigravity provider and owner-managed credentials.
+- [ ] Android currently remains local report-based research; it is not yet connected to this remote API.
+- Implementation commit: `a1cc92e780527bc2918ac491945863b285410f33`.
