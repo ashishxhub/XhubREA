@@ -521,29 +521,12 @@ private fun XhubReaDashboard() {
         return
     }
 
+    Column(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 44.dp),
+        modifier = Modifier.weight(1f),
+        contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                listOf("Overview", "APK", "Research", "Reports", "Settings").forEach { tab ->
-                    TextButton(onClick = {
-                        selectedTab = tab
-                        if (tab == "Settings") showSettings = true
-                    }) {
-                        Text(tab, color = if (selectedTab == tab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 11.sp)
-                    }
-                }
-            }
-        }
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -1731,6 +1714,11 @@ private fun XhubReaDashboard() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+    XhubBottomNavigation(selectedTab = "Overview", onSelect = { tab ->
+        selectedTab = tab
+        showSettings = tab == "Settings"
+    })
     }
 }
 
