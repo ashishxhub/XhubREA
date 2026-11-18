@@ -13,7 +13,7 @@
 | Agent execution/dispatch engine | NOT_STARTED | No live agent or provider dispatch is connected. A concrete executor requires separate security review and explicit owner enablement. |
 | Live Antigravity-backed pilot team | NOT_STARTED | Requires owner-managed backend credentials and end-to-end verification. |
 
-Latest agent-organization verification: all Python jobs in run 44233543429 passed, including unit tests and Antigravity SDK import smoke test. Android workflow run 44233543815 passed lint, unit tests, debug APK build, and unsigned release bundle build. Task-store, bounded-executor, and priority-queue tests are awaiting a fresh Python CI run.
+Latest agent-organization verification: all Python jobs in run 44233543429 passed, including unit tests and Antigravity SDK import smoke test. Android workflow run 44233543815 passed lint, unit tests, debug APK build, and unsigned release bundle build. Fresh Python CI run 44234607055 compiled all modules and passed the Antigravity SDK import smoke test; unit tests exposed two approval-check ordering regressions in the task store/executor. Both checks were corrected in commits d017039 and f94ba4e; rerun is pending. All 9 new queue tests passed in that run.
 
 ## Status definitions
 - NOT_STARTED: no implementation exists.
