@@ -65,5 +65,13 @@ describe("XhubREA dashboard interactions", () => {
     expect(screen.getByRole("heading", { name: "Security center" })).toBeInTheDocument();
     expect(screen.getByText("This workspace is being prepared")).toBeInTheDocument();
   });
-});
+  it("opens the metadata-only app comparison workspace", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /App comparison/ }));
+    expect(screen.getByRole("heading", { name: "Compare two applications" })).toBeInTheDocument();
+    expect(screen.getByText(/does not upload, open, or execute APKs/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Compare applications" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/Connect the backend/);
+  });
 
+});
