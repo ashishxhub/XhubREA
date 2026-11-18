@@ -14,14 +14,16 @@ class ResearchApiClientTest {
     }
 
     @Test
-    fun allowsHttpOnlyForLocalDevelopmentHosts() {
-        assertEquals("http://10.0.2.2:8000", ResearchApiClient.validateBaseUrl("http://10.0.2.2:8000"))
-    }
-
-    @Test
     fun rejectsRemoteHttpBackend() {
         assertThrows(IllegalArgumentException::class.java) {
             ResearchApiClient.validateBaseUrl("http://api.example.com")
+        }
+    }
+
+    @Test
+    fun rejectsLocalHttpBackendBecauseAppDisallowsCleartextTraffic() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ResearchApiClient.validateBaseUrl("http://10.0.2.2:8000")
         }
     }
 
