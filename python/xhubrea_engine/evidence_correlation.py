@@ -43,7 +43,7 @@ def correlate_evidence(evidence: list[dict[str, Any]]) -> dict[str, Any]:
         observation = _text(item.get("observation"), f"observation for {evidence_id}")
         key = _text(item.get("evidence_key"), f"evidence_key for {evidence_id}", MAX_KEY_CHARS)
         confidence = item.get("confidence", "low")
-        if confidence not in CONFIDENCE_LEVELS:
+        if not isinstance(confidence, str) or confidence not in CONFIDENCE_LEVELS:
             raise ValueError(f"confidence for {evidence_id} must be low, medium, or high.")
 
         record = {
