@@ -85,10 +85,10 @@ class GuardedExecutor:
             )
 
         task = self.task_store.get_task(task_id)
-        if task["status"] not in {"queued", "approved", "failed"}:
-            raise TaskStoreError("task is not eligible for execution")
         if task["approval_gates"] and task["status"] != "approved":
             raise TaskStoreError("owner approval is required before execution")
+        if task["status"] not in {"queued", "approved", "failed"}:
+            raise TaskStoreError("task is not eligible for execution")
         if task["attempts"] > task["max_retries"]:
             raise TaskStoreError("task retry limit has been reached")
 
