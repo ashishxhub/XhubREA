@@ -13,6 +13,7 @@ from xhubrea_engine.api import (
     _enforce_rate_limit,
     _request_times,
     require_api_token,
+    validate_startup_config,
     research_structure,
 )
 
@@ -112,6 +113,53 @@ class ApiAuthTests(unittest.TestCase):
             with self.assertRaises(HTTPException) as caught:
                 asyncio.run(research_structure(payload))
         self.assertEqual(caught.exception.status_code, 429)
+
+
+class StartupConfigTests(unittest.TestCase):
+    def test_development_defaults_are_valid(self):
+        validate_startup_config({"XHUBREA_ENV": "development"})
+
+    def test_unknown_environment_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "XHUBREA_ENV"):
+            validate_startup_config({"XHUBREA_ENV": "staging"})
+
+    def test_production_is_blocked_until_user_identity_and_ownership_exist(self):
+        with self.assertRaisesRegex(RuntimeError, "OIDC user identity"):
+            validate_startup_config({"XHUBREA_ENV": "production"})
+
+    def test_wildcard_cors_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "exact HTTPS origins"):
+            validate_startup_config({
+                "XHUBREA_ENV": "development",
+                "XHUBREA_CORS_ORIGINS": "*",
+            })
+
+    def test_remote_http_cors_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "exact HTTPS origins"):
+            validate_startup_config({
+                "XHUBREA_ENV": "development",
+                "XHUBREA_CORS_ORIGINS": "http://example.com",
+            })
+
+    def test_exact_https_cors_origin_is_accepted(self):
+        validate_startup_config({
+            "XHUBREA_ENV": "development",
+            "XHUBREA_CORS_ORIGINS": "https://dashboard.example.com",
+        })
+
+    def test_agent_enablement_requires_server_side_key(self):
+        with self.assertRaisesRegex(RuntimeError, "GEMINI_API_KEY"):
+            validate_startup_config({
+                "XHUBREA_ENV": "development",
+                "XHUBREA_ANTIGRAVITY_ENABLED": "true",
+            })
+
+    def test_agent_enablement_accepts_server_side_key(self):
+        validate_startup_config({
+            "XHUBREA_ENV": "development",
+            "XHUBREA_ANTIGRAVITY_ENABLED": "true",
+            "GEMINI_API_KEY": "test-only-placeholder",
+        })
 
 
 if __name__ == "__main__":
