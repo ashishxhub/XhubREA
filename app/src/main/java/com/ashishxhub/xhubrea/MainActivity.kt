@@ -106,6 +106,43 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+private fun XhubBottomNavigation(
+    selectedTab: String,
+    onSelect: (String) -> Unit
+) {
+    Column {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            listOf("Overview", "APK", "Research", "Reports", "Settings").forEach { tab ->
+                TextButton(
+                    onClick = { onSelect(tab) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = when (tab) {
+                            "Overview" -> "⌂\nHome"
+                            "APK" -> "▣\nAPK"
+                            "Research" -> "⌕\nResearch"
+                            "Reports" -> "▤\nReports"
+                            else -> "⚙\nSettings"
+                        },
+                        color = if (selectedTab == tab) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 10.sp,
+                        lineHeight = 13.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun XhubReaDashboard() {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
@@ -332,23 +369,6 @@ private fun XhubReaDashboard() {
 
     if (selectedTab != "Overview" && !showSettings) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                listOf("Overview", "APK", "Research", "Reports", "Settings").forEach { tab ->
-                    TextButton(onClick = {
-                        selectedTab = tab
-                        if (tab == "Settings") showSettings = true
-                    }) {
-                        Text(tab, color = if (selectedTab == tab) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 11.sp)
-                    }
-                }
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(20.dp),
@@ -422,13 +442,18 @@ private fun XhubReaDashboard() {
                     }
                 }
             }
+            XhubBottomNavigation(selectedTab = selectedTab, onSelect = { tab ->
+                selectedTab = tab
+                showSettings = tab == "Settings"
+            })
         }
         return
     }
 
     if (showSettings) {
+        Column(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 44.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -487,6 +512,11 @@ private fun XhubReaDashboard() {
                     "120 Hz ka matlab screen ek second mein 120 baar tak update ho sakti hai. XhubREA highest supported mode request karta hai, lekin final choice phone, battery saver, heat aur Android ke control mein hoti hai. Isliye 120 Hz har phone par guarantee nahi hai."
                 )
             }
+        }
+        XhubBottomNavigation(selectedTab = "Settings", onSelect = { tab ->
+            selectedTab = tab
+            showSettings = tab == "Settings"
+        })
         }
         return
     }
