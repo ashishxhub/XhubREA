@@ -180,3 +180,9 @@ async def research_structure(payload: ResearchStructureRequest) -> dict:
         return structure_findings([finding.model_dump() for finding in payload.findings])
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+# Keep APK metadata analysis in a separate bounded, read-only router.
+from xhubrea_engine.apk_research_api import create_apk_research_router
+
+app.include_router(create_apk_research_router(require_api_token, _enforce_rate_limit))
