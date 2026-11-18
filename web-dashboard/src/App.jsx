@@ -77,7 +77,13 @@ export default function App() {
     if (!text || isSending) return;
     setMessages(current => [...current, { role: "user", text }]);
     setPrompt("");
-    if (!backendUrl.trim() || !apiToken.trim()) return;
+    if (!backendUrl.trim() || !apiToken.trim()) {
+      setMessages(current => [...current, {
+        role: "assistant",
+        text: "Local preview only — your question has not been sent to an AI service. Open Settings, configure your deployed HTTPS XhubREA backend and temporary access token, then connect to enable authenticated research chat."
+      }]);
+      return;
+    }
     setIsSending(true);
     try {
       const answer = await sendResearchMessage({ baseUrl: backendUrl, token: apiToken }, text);
