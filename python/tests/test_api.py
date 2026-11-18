@@ -1,4 +1,5 @@
 """Unit tests for the optional authenticated XhubREA API."""
+import asyncio
 import os
 import unittest
 from unittest.mock import patch
@@ -7,9 +8,13 @@ from fastapi import HTTPException
 
 from xhubrea_engine.api import (
     AgentChatRequest,
+    ResearchStructureRequest,
+    app,
     _enforce_rate_limit,
     _request_times,
     require_api_token,
+    validate_startup_config,
+    research_structure,
 )
 
 
@@ -33,6 +38,46 @@ class ApiAuthTests(unittest.TestCase):
         with patch.dict(os.environ, {"XHUBREA_API_TOKEN": "server-secret"}):
             self.assertIsNone(require_api_token("Bearer server-secret"))
 
+    def test_rejects_malformed_authorization_headers(self):
+        malformed_headers = [
+            None,
+            "",
+            "Basic server-secret",
+            "Bearer",
+            "Bearer ",
+            "Bearer  server-secret",
+            "Bearer wrong",
+        ]
+        with patch.dict(os.environ, {"XHUBREA_API_TOKEN": "server-secret"}):
+            for header in malformed_headers:
+                with self.subTest(header=header):
+                    with self.assertRaises(HTTPException) as caught:
+                        require_api_token(header)
+                    self.assertEqual(caught.exception.status_code, 401)
+
+    def test_every_versioned_api_route_requires_server_token(self):
+        protected_routes = [
+            route for route in app.routes
+            if getattr(route, "path", "").startswith("/v1/")
+        ]
+        self.assertTrue(protected_routes, "Expected at least one protected API route")
+        for route in protected_routes:
+            with self.subTest(path=route.path):
+                self.assertTrue(
+                    any(dependency.dependency is require_api_token for dependency in route.dependencies),
+                    f"{route.path} must depend on require_api_token",
+                )
+
+    def test_health_route_remains_public(self):
+        health_routes = [
+            route for route in app.routes
+            if getattr(route, "path", "") == "/health"
+        ]
+        self.assertEqual(len(health_routes), 1)
+        self.assertFalse(
+            any(dependency.dependency is require_api_token for dependency in health_routes[0].dependencies)
+        )
+
     def test_prompt_has_strict_length_bounds(self):
         with self.assertRaises(ValueError):
             AgentChatRequest(prompt="")
@@ -47,6 +92,74 @@ class ApiAuthTests(unittest.TestCase):
         with self.assertRaises(HTTPException) as caught:
             _enforce_rate_limit(now=110)
         self.assertEqual(caught.exception.status_code, 429)
+
+    def test_rate_limit_window_expires_after_sixty_seconds(self):
+        for i in range(10):
+            _enforce_rate_limit(now=100 + i)
+        # The oldest request is exactly 60 seconds old and is expired.
+        _enforce_rate_limit(now=160)
+        self.assertEqual(len(_request_times), 10)
+
+    def test_structure_endpoint_obeys_rate_limit(self):
+        for i in range(10):
+            _enforce_rate_limit(now=200 + i)
+        payload = ResearchStructureRequest(findings=[{
+            "evidence_id": "E-1",
+            "source": "manifest",
+            "observation": "Network permission declared",
+            "confidence": "medium",
+        }])
+        with patch("xhubrea_engine.api.time.monotonic", return_value=210):
+            with self.assertRaises(HTTPException) as caught:
+                asyncio.run(research_structure(payload))
+        self.assertEqual(caught.exception.status_code, 429)
+
+
+class StartupConfigTests(unittest.TestCase):
+    def test_development_defaults_are_valid(self):
+        validate_startup_config({"XHUBREA_ENV": "development"})
+
+    def test_unknown_environment_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "XHUBREA_ENV"):
+            validate_startup_config({"XHUBREA_ENV": "staging"})
+
+    def test_production_is_blocked_until_user_identity_and_ownership_exist(self):
+        with self.assertRaisesRegex(RuntimeError, "OIDC user identity"):
+            validate_startup_config({"XHUBREA_ENV": "production"})
+
+    def test_wildcard_cors_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "exact HTTPS origins"):
+            validate_startup_config({
+                "XHUBREA_ENV": "development",
+                "XHUBREA_CORS_ORIGINS": "*",
+            })
+
+    def test_remote_http_cors_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "exact HTTPS origins"):
+            validate_startup_config({
+                "XHUBREA_ENV": "development",
+                "XHUBREA_CORS_ORIGINS": "http://example.com",
+            })
+
+    def test_exact_https_cors_origin_is_accepted(self):
+        validate_startup_config({
+            "XHUBREA_ENV": "development",
+            "XHUBREA_CORS_ORIGINS": "https://dashboard.example.com",
+        })
+
+    def test_agent_enablement_requires_server_side_key(self):
+        with self.assertRaisesRegex(RuntimeError, "GEMINI_API_KEY"):
+            validate_startup_config({
+                "XHUBREA_ENV": "development",
+                "XHUBREA_ANTIGRAVITY_ENABLED": "true",
+            })
+
+    def test_agent_enablement_accepts_server_side_key(self):
+        validate_startup_config({
+            "XHUBREA_ENV": "development",
+            "XHUBREA_ANTIGRAVITY_ENABLED": "true",
+            "GEMINI_API_KEY": "test-only-placeholder",
+        })
 
 
 if __name__ == "__main__":

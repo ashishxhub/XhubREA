@@ -76,18 +76,18 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(
-                    primary = Color(0xFF8AB4FF),
-                    onPrimary = Color(0xFF082044),
-                    secondary = Color(0xFF63D7D0),
-                    background = Color(0xFF080F1E),
-                    surface = Color(0xFF111D31),
-                    surfaceVariant = Color(0xFF1C2B43),
-                    onSurface = Color(0xFFEAF1FF),
-                    onSurfaceVariant = Color(0xFFB1C0D8),
-                    onBackground = Color(0xFFEAF1FF),
-                    secondaryContainer = Color(0xFF123A43),
-                    onSecondaryContainer = Color(0xFFD7FFFA),
-                    outline = Color(0xFF344761)
+                    primary = Color(0xFF6487FA),
+                    onPrimary = Color(0xFF10182A),
+                    secondary = Color(0xFF4AC7A2),
+                    background = Color(0xFF0C0F15),
+                    surface = Color(0xFF151A23),
+                    surfaceVariant = Color(0xFF1A2230),
+                    onSurface = Color(0xFFEDF1F8),
+                    onSurfaceVariant = Color(0xFF929EAF),
+                    onBackground = Color(0xFFEDF1F8),
+                    secondaryContainer = Color(0xFF142822),
+                    onSecondaryContainer = Color(0xFFD8F8EC),
+                    outline = Color(0xFF293241)
                 ),
                 shapes = Shapes(
                     extraSmall = RoundedCornerShape(8.dp),
@@ -99,6 +99,43 @@ class MainActivity : ComponentActivity() {
             ) {
                 Surface(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                     XhubReaDashboard()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun XhubBottomNavigation(
+    selectedTab: String,
+    onSelect: (String) -> Unit
+) {
+    Column {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            listOf("Overview", "APK", "Research", "Reports", "Settings").forEach { tab ->
+                TextButton(
+                    onClick = { onSelect(tab) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = when (tab) {
+                            "Overview" -> "⌂\nHome"
+                            "APK" -> "▣\nAPK"
+                            "Research" -> "⌕\nResearch"
+                            "Reports" -> "▤\nReports"
+                            else -> "⚙\nSettings"
+                        },
+                        color = if (selectedTab == tab) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 10.sp,
+                        lineHeight = 13.sp
+                    )
                 }
             }
         }
@@ -154,6 +191,9 @@ private fun XhubReaDashboard() {
     var completeAnalysisJob by remember { mutableStateOf<Job?>(null) }
 
     var showSettings by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf("Overview") }
+    var researchQuestion by remember { mutableStateOf("") }
+    var researchAnswer by remember { mutableStateOf("Ask about the currently available APK and research reports. Answers are grounded in local findings only.") }
     var simpleExplain by remember { mutableStateOf(preferences.getBoolean("simple_explain", true)) }
     var showHints by remember { mutableStateOf(preferences.getBoolean("show_hints", true)) }
     var smoothMotion by remember { mutableStateOf(preferences.getBoolean("smooth_motion", false)) }
@@ -327,9 +367,93 @@ private fun XhubReaDashboard() {
         }
     }
 
+    if (selectedTab != "Overview" && !showSettings) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                when (selectedTab) {
+                    "APK" -> {
+                        item {
+                            SectionHeading("APK Analysis", "Select an APK you own or are authorized to study.")
+                            InfoCard("Current APK", apkReport.take(2400))
+                            Button(onClick = {
+                                apkPicker.launch(arrayOf("application/vnd.android.package-archive", "application/octet-stream"))
+                            }, modifier = Modifier.fillMaxWidth()) { Text("Choose APK file") }
+                            Button(onClick = {
+                                selectedTab = "Overview"
+                                status = "APK analysis tools are available in the Overview workspace below."
+                            }, modifier = Modifier.fillMaxWidth()) { Text("Open full analysis workspace") }
+                        }
+                    }
+                    "Research" -> {
+                        item {
+                            SectionHeading("Research Assistant", "Ask questions about the reports generated on this device.")
+                            InfoCard("Evidence mode", "LOCAL REPORTS ONLY • Read-only • No cloud AI is connected in this screen. Answers may say when evidence is unavailable.")
+                            OutlinedTextField(
+                                value = researchQuestion,
+                                onValueChange = { researchQuestion = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Ask about this APK or its reports") },
+                                placeholder = { Text("Example: Which permissions were found?") },
+                                minLines = 2
+                            )
+                            Button(
+                                onClick = {
+                                    researchAnswer = answerFromLocalResearch(
+                                        researchQuestion, apkReport, fullAnalysisSummary,
+                                        fullResearchReport, networkIntelligenceReport,
+                                        privacyIntelligenceReport, humanBehaviourReport,
+                                        resourceIntelligenceReport
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = researchQuestion.isNotBlank()
+                            ) { Text("Ask Research Assistant") }
+                            Text("Quick questions", style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            listOf("Explain this APK", "What permissions were found?", "What is still unknown?", "Summarize network findings").forEach { prompt ->
+                                TextButton(onClick = {
+                                    researchQuestion = prompt
+                                    researchAnswer = answerFromLocalResearch(
+                                        prompt, apkReport, fullAnalysisSummary,
+                                        fullResearchReport, networkIntelligenceReport,
+                                        privacyIntelligenceReport, humanBehaviourReport,
+                                        resourceIntelligenceReport
+                                    )
+                                }) { Text(prompt) }
+                            }
+                            InfoCard("Answer • local evidence", researchAnswer)
+                            InfoCard("APK metadata", apkReport.take(1800))
+                            InfoCard("Research Lab", fullResearchReport.take(1800))
+                        }
+                    }
+                    "Reports" -> {
+                        item {
+                            SectionHeading("Reports", "Review and export the latest local analysis results.")
+                            InfoCard("Analysis summary", fullAnalysisSummary)
+                            InfoCard("APK metadata", apkReport.take(2400))
+                            InfoCard("Comparison", comparisonReport.take(2400))
+                            Button(onClick = { reportSaver.launch("XhubREA-research-report.txt") },
+                                modifier = Modifier.fillMaxWidth()) { Text("Export research report") }
+                        }
+                    }
+                }
+            }
+            XhubBottomNavigation(selectedTab = selectedTab, onSelect = { tab ->
+                selectedTab = tab
+                showSettings = tab == "Settings"
+            })
+        }
+        return
+    }
+
     if (showSettings) {
+        Column(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 44.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -351,7 +475,7 @@ private fun XhubReaDashboard() {
             }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = { showSettings = false }, modifier = Modifier.weight(1f)) {
+                    Button(onClick = { showSettings = false; selectedTab = "Overview" }, modifier = Modifier.weight(1f)) {
                         Text("⌂ Home")
                     }
                     Button(onClick = { showSettings = true }, modifier = Modifier.weight(1f), enabled = false) {
@@ -389,46 +513,68 @@ private fun XhubReaDashboard() {
                 )
             }
         }
+        XhubBottomNavigation(selectedTab = "Settings", onSelect = { tab ->
+            selectedTab = tab
+            showSettings = tab == "Settings"
+        })
+        }
         return
     }
 
+    Column(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 44.dp),
+        modifier = Modifier.weight(1f),
+        contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF17365F)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF151F31)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(22.dp)) {
-                    Text(
-                        text = "XhubREA",
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Understand apps. Build original ideas.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color(0xFFDCE7FF)
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = Color(0xFF24517A)
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "✦  STATIC APK INTELLIGENCE",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("XhubREA", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Text("Application intelligence workspace",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Surface(shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF142822)) {
+                            Text("● LOCAL", modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp),
+                                color = Color(0xFF4AC7A2), style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Spacer(Modifier.height(18.dp))
+                    Text("Understand apps. Build original ideas.",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.height(5.dp))
+                    Text("Analyze APK metadata, inspect structure and organize evidence — read-only.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFF202D43)) {
+                            Text("✦ APK INTELLIGENCE", modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                style = MaterialTheme.typography.labelSmall, color = Color(0xFF9DB6FF),
+                                fontWeight = FontWeight.Bold)
+                        }
+                        Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFF142822)) {
+                            Text("EVIDENCE FIRST", modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                style = MaterialTheme.typography.labelSmall, color = Color(0xFF4AC7A2),
+                                fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -1568,6 +1714,11 @@ private fun XhubReaDashboard() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+    XhubBottomNavigation(selectedTab = "Overview", onSelect = { tab ->
+        selectedTab = tab
+        showSettings = tab == "Settings"
+    })
     }
 }
 
@@ -2731,5 +2882,48 @@ private fun formatResourceIntelligenceReport(rawJson: String): String {
         }
     }.getOrElse { error ->
         "Python resource intelligence could not be formatted: ${error.message ?: "Invalid report"}\n\nRaw report:\n${rawJson.take(6000)}"
+    }
+}
+
+
+/**
+ * Conservative local report Q&A. It never invents findings or claims to be an LLM.
+ * Each answer names the local report it used and calls out missing evidence.
+ */
+private fun answerFromLocalResearch(
+    question: String,
+    apk: String,
+    summary: String,
+    research: String,
+    network: String,
+    privacy: String,
+    behaviour: String,
+    resources: String
+): String {
+    val q = question.lowercase()
+    fun available(report: String) = report.isNotBlank() &&
+        !report.startsWith("No APK") &&
+        !report.startsWith("Run Complete") &&
+        !report.startsWith("Choose an APK") &&
+        !report.startsWith("Run Full")
+    fun excerpt(report: String, label: String): String =
+        if (available(report)) "$label (local report):\\n" + report.take(2200)
+        else "$label: No result is available yet. Run the relevant analysis first."
+    return when {
+        q.contains("permission") -> excerpt(apk.substringAfter("Permission analysis", apk), "Permission analysis")
+        q.contains("network") || q.contains("api") -> excerpt(network, "Network Intelligence")
+        q.contains("privacy") || q.contains("data") -> excerpt(privacy, "Privacy Intelligence")
+        q.contains("behavio") || q.contains("user") -> excerpt(behaviour, "Human Behaviour Intelligence")
+        q.contains("resource") || q.contains("asset") -> excerpt(resources, "Resource Intelligence")
+        q.contains("unknown") || q.contains("limit") || q.contains("not tested") ->
+            "Known limitation: XhubREA only reports what its current local analyzers inspected.\\n" +
+                listOf(excerpt(apk, "APK metadata"), excerpt(research, "Research Lab"),
+                    "Network: " + if (available(network)) "report available" else "not analyzed",
+                    "Privacy: " + if (available(privacy)) "report available" else "not analyzed").joinToString("\\n\\n") +
+                "\\n\\nA missing result is not proof that an issue exists or does not exist."
+        q.contains("explain") || q.contains("summar") || q.contains("apk") ->
+            listOf(excerpt(apk, "APK metadata"), excerpt(summary, "Analysis summary"),
+                excerpt(research, "Research Lab")).joinToString("\\n\\n")
+        else -> "I can answer from local reports about APK metadata, permissions, network, privacy, behaviour, resources, or analysis limitations. Try one of the quick questions.\\n\\nNo evidence was inferred beyond the reports currently stored on this device."
     }
 }
