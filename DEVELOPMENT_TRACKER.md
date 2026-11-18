@@ -5,11 +5,11 @@
 |---|---|---|
 | 51-role specialist registry | IMPLEMENTED | `config/agent_registry.yaml`; role templates only, not 51 running agents. |
 | Organization hierarchy and task lifecycle | IMPLEMENTED | `docs/AGENT_ORGANIZATION_ARCHITECTURE.md`; defines owner approvals, scoped tasks, verification, and safety boundaries. |
-| Registry loader and schema validation | NOT_STARTED | Next implementation task; add YAML parsing, unique-ID/count/department/reporting-line validation and tests. |
+| Registry loader and schema validation | IMPLEMENTED | `python/xhubrea_engine/agent_registry.py` uses `yaml.safe_load`; validates role/department IDs, required fields, 51-role count, department leads, manager references, and reporting cycles. Automated tests added; CI verification pending. |
 | Provider-neutral coordinator and task dispatch | NOT_STARTED | Depends on validated registry and task contract. |
 | Live Antigravity-backed pilot team | NOT_STARTED | Requires owner-managed backend credentials and end-to-end verification. |
 
-Latest implementation commit: e6c7c4ade6a01e65bf952c21aaa3be2f89257d62. Android CI run 44101181501 is in progress; do not treat the resource-table decoder as verified until it passes.
+Latest agent-organization implementation: registry loader and validation added on `feature/agent-organization-foundation`; GitHub Actions verification pending. Android CI run 44101181501 is in progress; do not treat the resource-table decoder as verified until it passes.
 
 ## Status definitions
 - NOT_STARTED: no implementation exists.
