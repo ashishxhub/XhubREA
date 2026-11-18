@@ -251,3 +251,15 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Backend verified-principal dependency, platform sign-in, owner-scoped persistence and two-account negative tests remain NOT IMPLEMENTED.
 - [ ] Multi-user/public release remains BLOCKED until the identity and ownership release gates pass.
 - Architecture document commit: `4fae7fd3a8f9c6adf81368e0a1940e1145dd0efc`.
+
+
+### Identity provider assessment — preferred prototype candidate (2026-11-18)
+- [x] Reviewed current official Supabase Auth, JWT/JWKS, Python claims, Kotlin claims, React quickstart, pricing and terms references.
+- [x] Compared Supabase Auth, Firebase Authentication, Clerk, Auth0 and Keycloak against the current React + Vite, Kotlin Android and FastAPI stack.
+- [x] Recorded Supabase Auth as the **preferred technical prototype candidate**, not a final provider selection or live integration.
+- [x] Documented current Free plan limits and that pricing/terms must be rechecked before use.
+- [x] No cloud project/account, payment method, credentials, API keys or database were created.
+- [ ] An eligible account holder / legally authorized adult must review current provider terms and eligibility and explicitly approve any account setup; do not bypass age checks.
+- [ ] After approval and secure configuration, implement FastAPI JWT/JWKS verification and negative claim tests before connecting either client.
+- [ ] Existing shared bearer token remains private-development-only; no public multi-user release.
+- Assessment document commit: `7da259725d84ed9b9f10c653e29a26cb7545591f`.
