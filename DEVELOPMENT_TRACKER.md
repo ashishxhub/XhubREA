@@ -239,3 +239,15 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Implement and pass User A/User B cross-account integration tests against production-equivalent database and object storage.
 - [ ] Multi-user release remains BLOCKED until all ownership checks and negative tests pass.
 - Design commit: `3dacd5663dfe23740b192d4827a6628555e9abe8`.
+
+
+### OIDC authentication architecture — provider decision gate (2026-11-18)
+- [x] Added `docs/OIDC_AUTHENTICATION_ARCHITECTURE.md` with provider-neutral OIDC Authorization Code + PKCE architecture for Web and Android.
+- [x] Documented backend JWT verification requirements, trusted issuer/audience/JWKS, immutable issuer+subject identity mapping, and rejection of client-supplied user IDs.
+- [x] Documented Web BFF/secure-cookie and Android system-browser/PKCE session requirements.
+- [x] Recorded provider evaluation criteria and candidates for later review; no provider was selected, configured or registered.
+- [x] Explicitly kept this phase documentation-only: no login code, accounts, credentials or public registration were added.
+- [ ] Owner must choose an age-eligible provider after checking current terms, cost and feature limits; then configure separate Web and Android public clients.
+- [ ] Backend verified-principal dependency, platform sign-in, owner-scoped persistence and two-account negative tests remain NOT IMPLEMENTED.
+- [ ] Multi-user/public release remains BLOCKED until the identity and ownership release gates pass.
+- Architecture document commit: `4fae7fd3a8f9c6adf81368e0a1940e1145dd0efc`.
