@@ -14,7 +14,7 @@ Scope: repository-level review of the current FastAPI research API and regressio
 - Assert `/health` remains public and is not mistaken for an authenticated route.
 - Retain existing checks for missing server configuration, valid/invalid token, prompt validation and rolling rate-limit behavior.
 
-The new regression tests are committed but **CI execution is still pending**. Do not treat them as passed until the Python Actions workflow completes successfully.
+The new regression tests passed in GitHub Actions run `44234291071`: 42 Python unit tests passed, and the optional Antigravity SDK import smoke test also succeeded. This verifies the tested code paths only; it is not a penetration test or proof of user-data isolation.
 
 ## Findings and risk
 
