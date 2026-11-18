@@ -185,3 +185,49 @@ async def research_structure(payload: ResearchStructureRequest) -> dict:
         return structure_findings([finding.model_dump() for finding in payload.findings])
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def validate_startup_config(env: dict[str, str] | None = None) -> None:
+    """Fail closed on unsafe deployment settings; this API is not multi-user ready."""
+    settings = os.environ if env is None else env
+    runtime = settings.get("XHUBREA_ENV", "development").strip().lower()
+    if runtime not in {"development", "test", "production"}:
+        raise RuntimeError("XHUBREA_ENV must be development, test, or production.")
+
+    if runtime == "production":
+        # A shared bearer token is not an end-user identity and cannot enforce
+        # per-user ownership. Do not allow accidental public deployment.
+        raise RuntimeError(
+            "Production startup is blocked: OIDC user identity and owner-scoped "
+            "authorization have not been implemented and verified."
+        )
+
+    origins = [
+        item.strip()
+        for item in settings.get("XHUBREA_CORS_ORIGINS", "").split(",")
+        if item.strip()
+    ]
+    for origin in origins:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(origin)
+        local_http = parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1"}
+        secure_remote = parsed.scheme == "https" and bool(parsed.hostname)
+        if not (local_http or secure_remote) or parsed.path not in {"", "/"} or parsed.query or parsed.fragment or parsed.username or parsed.password or origin == "*":
+            raise RuntimeError(
+                "XHUBREA_CORS_ORIGINS must contain exact HTTPS origins "
+                "(HTTP is allowed only for localhost); wildcards and URL paths are forbidden."
+            )
+
+    agent_enabled = settings.get("XHUBREA_ANTIGRAVITY_ENABLED", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+    if agent_enabled and not settings.get("GEMINI_API_KEY", "").strip():
+        raise RuntimeError(
+            "Antigravity is enabled but GEMINI_API_KEY is missing from the backend environment."
+        )
+
+
+@app.on_event("startup")
+async def _validate_startup_config() -> None:
+    validate_startup_config()
