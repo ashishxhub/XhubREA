@@ -88,7 +88,7 @@ Authentication required. Request:
 FastAPI validation errors may return 422 for malformed request bodies. Application routes may return:
 - 400: invalid research input or prompt.
 - 401: missing/invalid bearer token.
-- 429: rate limit reached (currently chat and analyze only).
+- 429: rate limit reached (all three protected API routes).
 - 502: AI provider request failed.
 - 503: server authentication or AI provider is not configured/disabled.
 
