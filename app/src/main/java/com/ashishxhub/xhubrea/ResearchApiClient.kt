@@ -10,6 +10,17 @@ import java.net.URL
  * HTTPS-only client for XhubREA's read-only research backend.
  * The bearer token is supplied at call time and is never persisted by this class.
  */
+
+/** Caller-supplied metadata only; this model never reads or executes an APK. */
+data class AppSnapshotInput(
+    val appLabel: String = "Application",
+    val permissions: List<String> = emptyList(),
+    val components: List<String> = emptyList(),
+    val sourceStructure: List<String> = emptyList(),
+    val dependencies: List<String> = emptyList(),
+    val architecture: List<String> = emptyList()
+)
+
 class ResearchApiClient(
     private val baseUrl: String,
     private val bearerToken: String,
@@ -27,6 +38,39 @@ class ResearchApiClient(
         val response = request("/v1/agent/chat", JSONObject().put("prompt", cleanPrompt))
         return response.optString("answer").takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("Backend returned an invalid response.")
+    }
+
+    /**
+     * Compares two caller-provided inventories through the authenticated backend.
+     * Each category is limited to 200 labels of at most 300 characters.
+     */
+    suspend fun compareApps(appA: AppSnapshotInput, appB: AppSnapshotInput): JSONObject {
+        return request("/v1/apps/compare", buildComparisonPayload(appA, appB))
+    }
+
+    internal fun buildComparisonPayload(appA: AppSnapshotInput, appB: AppSnapshotInput): JSONObject {
+        fun snapshot(input: AppSnapshotInput): JSONObject {
+            require(input.appLabel.isNotBlank() && input.appLabel.length <= 300) {
+                "App label must contain 1–300 non-blank characters."
+            }
+            fun labels(values: List<String>, category: String): org.json.JSONArray {
+                require(values.size <= 200) { "$category can contain at most 200 entries." }
+                values.forEach {
+                    require(it.isNotBlank() && it.length <= 300) {
+                        "$category entries must contain 1–300 non-blank characters."
+                    }
+                }
+                return org.json.JSONArray(values)
+            }
+            return JSONObject()
+                .put("app_label", input.appLabel.trim())
+                .put("permissions", labels(input.permissions, "Permissions"))
+                .put("components", labels(input.components, "Components"))
+                .put("source_structure", labels(input.sourceStructure, "Source structure"))
+                .put("dependencies", labels(input.dependencies, "Dependencies"))
+                .put("architecture", labels(input.architecture, "Architecture"))
+        }
+        return JSONObject().put("app_a", snapshot(appA)).put("app_b", snapshot(appB))
     }
 
     private suspend fun request(

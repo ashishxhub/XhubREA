@@ -40,4 +40,44 @@ class ResearchApiClientTest {
             ResearchApiClient.validateBaseUrl("   ")
         }
     }
+
+    @Test
+    fun buildsComparisonPayloadWithBothSnapshots() {
+        val payload = ResearchApiClient(
+            "https://api.example.com", "token"
+        ).buildComparisonPayload(
+            AppSnapshotInput(appLabel = "App A", permissions = listOf("camera")),
+            AppSnapshotInput(appLabel = "App B", architecture = listOf("MVVM"))
+        )
+
+        assertEquals("App A", payload.getJSONObject("app_a").getString("app_label"))
+        assertEquals("camera", payload.getJSONObject("app_a").getJSONArray("permissions").getString(0))
+        assertEquals("App B", payload.getJSONObject("app_b").getString("app_label"))
+        assertEquals("MVVM", payload.getJSONObject("app_b").getJSONArray("architecture").getString(0))
+    }
+
+    @Test
+    fun rejectsMoreThanTwoHundredLabels() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ResearchApiClient("https://api.example.com", "token").buildComparisonPayload(
+                AppSnapshotInput(permissions = List(201) { "permission-$it" }),
+                AppSnapshotInput()
+            )
+        }
+    }
+
+    @Test
+    fun rejectsOverlongOrBlankLabels() {
+        val client = ResearchApiClient("https://api.example.com", "token")
+        assertThrows(IllegalArgumentException::class.java) {
+            client.buildComparisonPayload(AppSnapshotInput(appLabel = " "), AppSnapshotInput())
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            client.buildComparisonPayload(
+                AppSnapshotInput(components = listOf("x".repeat(301))),
+                AppSnapshotInput()
+            )
+        }
+    }
+
 }
