@@ -63,7 +63,7 @@ class ApiAuthTests(unittest.TestCase):
         for route in protected_routes:
             with self.subTest(path=route.path):
                 self.assertTrue(
-                    any(dependency.call is require_api_token for dependency in route.dependencies),
+                    any(dependency.dependency is require_api_token for dependency in route.dependencies),
                     f"{route.path} must depend on require_api_token",
                 )
 
@@ -74,7 +74,7 @@ class ApiAuthTests(unittest.TestCase):
         ]
         self.assertEqual(len(health_routes), 1)
         self.assertFalse(
-            any(dependency.call is require_api_token for dependency in health_routes[0].dependencies)
+            any(dependency.dependency is require_api_token for dependency in health_routes[0].dependencies)
         )
 
     def test_prompt_has_strict_length_bounds(self):
