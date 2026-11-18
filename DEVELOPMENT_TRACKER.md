@@ -132,3 +132,12 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [x] Clearly disclosed that this MVP is local report Q&A, not a connected cloud LLM.
 - [ ] Add structured evidence references and richer report parsing.
 - [ ] Run Android compile, lint and emulator/device checks; not yet verified.
+
+
+### Android persistent bottom navigation (2026-11-18)
+- [x] Added a reusable Material 3-styled bottom navigation component for APK, Research and Reports destinations.
+- [x] Added the same persistent bottom navigation to Settings, with working routes back to Overview and other sections.
+- [x] Kept the existing analysis screens, local Research Assistant and settings preferences intact.
+- [ ] Move Overview's legacy top tabs into the bottom bar so navigation placement is consistent on every destination.
+- [ ] Run Kotlin compile, Android lint, unit tests, emulator/device navigation and report-export checks; not yet verified.
+- Implementation commit: `cae1062cf2fa45978b6e6ddb98f791209de079b5`.
