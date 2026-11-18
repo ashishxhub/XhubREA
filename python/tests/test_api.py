@@ -1,4 +1,5 @@
 """Unit tests for the optional authenticated XhubREA API."""
+import asyncio
 import os
 import unittest
 from unittest.mock import patch
@@ -7,9 +8,11 @@ from fastapi import HTTPException
 
 from xhubrea_engine.api import (
     AgentChatRequest,
+    ResearchStructureRequest,
     _enforce_rate_limit,
     _request_times,
     require_api_token,
+    research_structure,
 )
 
 
@@ -46,6 +49,26 @@ class ApiAuthTests(unittest.TestCase):
             _enforce_rate_limit(now=100 + i)
         with self.assertRaises(HTTPException) as caught:
             _enforce_rate_limit(now=110)
+        self.assertEqual(caught.exception.status_code, 429)
+
+    def test_rate_limit_window_expires_after_sixty_seconds(self):
+        for i in range(10):
+            _enforce_rate_limit(now=100 + i)
+        # The oldest request is exactly 60 seconds old and is expired.
+        _enforce_rate_limit(now=160)
+        self.assertEqual(len(_request_times), 10)
+
+    def test_structure_endpoint_obeys_rate_limit(self):
+        for i in range(10):
+            _enforce_rate_limit(now=200 + i)
+        payload = ResearchStructureRequest(findings=[{
+            "evidence_id": "E-1",
+            "source": "manifest",
+            "observation": "Network permission declared",
+            "confidence": "medium",
+        }])
+        with self.assertRaises(HTTPException) as caught:
+            asyncio.run(research_structure(payload))
         self.assertEqual(caught.exception.status_code, 429)
 
 
