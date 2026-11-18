@@ -9,10 +9,11 @@
 | Provider-neutral task coordinator | VERIFIED | `python/xhubrea_engine/coordinator.py` routes goals to a department and specialist role templates, adds owner-approval gates, and returns a plan-only result. Python CI run 44233543429 passed. No provider dispatch is connected. |
 | Persistent task ledger and approval workflow | IMPLEMENTED | `python/xhubrea_engine/task_store.py` adds SQLite persistence, owner-only approval, lifecycle/audit events, bounded retries, and execution disabled by default. `python/tests/test_task_store.py` added; CI verification pending. |
 | Bounded executor interface | IMPLEMENTED | `python/xhubrea_engine/executor.py` defines a disabled-by-default executor contract, task-state/approval gates, timeout parameter bounds (1–60 seconds), and bounded result summaries. No real provider, shell, repository, or tool executor is included. Tests in `python/tests/test_executor.py`; CI pending. |
+| Persistent priority queue and scheduler | IMPLEMENTED | `python/xhubrea_engine/task_queue.py` adds persistent priority/FIFO ordering, department metadata, dedupe keys, approval-waiting separation, cancellation, and queue summaries. Scheduler only returns plans; it does not claim or execute tasks. Tests in `python/tests/test_task_queue.py`; CI pending. |
 | Agent execution/dispatch engine | NOT_STARTED | No live agent or provider dispatch is connected. A concrete executor requires separate security review and explicit owner enablement. |
 | Live Antigravity-backed pilot team | NOT_STARTED | Requires owner-managed backend credentials and end-to-end verification. |
 
-Latest agent-organization verification: all Python jobs in run 44233543429 passed, including unit tests and Antigravity SDK import smoke test. Android workflow run 44233543815 passed lint, unit tests, debug APK build, and unsigned release bundle build. Task-store and bounded-executor tests are awaiting a fresh Python CI run.
+Latest agent-organization verification: all Python jobs in run 44233543429 passed, including unit tests and Antigravity SDK import smoke test. Android workflow run 44233543815 passed lint, unit tests, debug APK build, and unsigned release bundle build. Task-store, bounded-executor, and priority-queue tests are awaiting a fresh Python CI run.
 
 ## Status definitions
 - NOT_STARTED: no implementation exists.
