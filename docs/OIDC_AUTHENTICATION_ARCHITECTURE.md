@@ -85,3 +85,46 @@ Rollout sequence:
 ## Decision gate
 
 **No provider selected. No login code changed. No credentials requested or stored.** Provider choice and any account registration require explicit owner approval after checking current provider terms, age eligibility and pricing. Do not bypass provider age restrictions. Until identity verification and ownership controls are implemented, keep multi-user access and public account registration disabled.
+
+
+## Provider assessment — 2026-11-18
+
+### Technical recommendation (not yet an account/provider selection)
+
+**Recommended candidate for the first implementation: Supabase Auth**, subject to the project owner's approval and review of account eligibility/terms.
+
+Why it is the strongest initial fit for the current XhubREA repository:
+- The project already has a Python FastAPI backend and React + Vite web dashboard; Supabase issues signed JWT access tokens that the API can verify using the project's JWKS endpoint.
+- Official Supabase documentation describes JWT claims including `iss`, `exp` and `sub`, asymmetric signing keys/JWKS, and a Python `get_claims` verification path.
+- Supabase publishes a Kotlin client reference including verified JWT claims, which is relevant to the native Android client.
+- It combines Auth with Postgres and Row Level Security, which may simplify the later owner-scoped persistence phase. RLS still must be designed and tested; enabling Supabase Auth alone does not isolate XhubREA's existing API resources.
+- The published Free plan currently lists $0/month and 50,000 monthly active users, but includes resource limits and pauses free projects after one week of inactivity. Treat plan details as changeable and re-check before use.
+
+### Shortlist comparison
+
+| Candidate | Fit for XhubREA now | Main trade-off |
+|---|---|---|
+| Supabase Auth | **Best initial technical fit**: JWT/JWKS, Postgres/RLS, React and Kotlin/Python references | Adds a hosted database/auth dependency; RLS and backend policy still require careful implementation |
+| Firebase Authentication | Strong Android/Google ecosystem option; can also support Web | XhubREA would still need a separate ownership/persistence design for the FastAPI API |
+| Clerk | Attractive hosted sign-in and user-management experience | Another separate identity service; verify native Android integration and cost/limits for the exact plan |
+| Auth0 | Established standalone identity platform and enterprise connections | Likely more capability than this early project currently needs; verify plan limits and implementation complexity |
+| Keycloak | Standards-based self-hosted option | XhubREA would own hosting, patching, backups, monitoring and incident response |
+
+### Safe implementation decision
+
+- Technical recommendation: **Supabase Auth is the preferred candidate to prototype**, not a final provider selection.
+- No Supabase project, account, payment method, credentials, API keys or database has been created or configured.
+- The current shared `XHUBREA_API_TOKEN` remains in place for private development only; do not distribute it to end users.
+- Before any account creation or acceptance of cloud-service terms, have a parent/guardian or other legally authorized adult review the provider's current terms and eligibility requirements and handle any required account/contract steps. Do not enter false age details or bypass an eligibility check.
+- Do not add billing or paid-plan requirements. Start with a no-cost prototype only if the account holder is eligible and the current plan terms permit the intended use.
+- After an eligible account holder approves the provider and supplies project configuration through a secure channel, implement backend JWT verification first. Never commit service-role keys or signing secrets; a publishable key is not a substitute for server-side authorization.
+
+### Official references checked
+
+- Supabase Auth overview: https://supabase.com/docs/guides/auth
+- Supabase JWT and JWKS verification: https://supabase.com/docs/guides/auth/jwts
+- Supabase Python verified claims: https://supabase.com/docs/reference/python/auth-getclaims
+- Supabase Kotlin verified claims: https://supabase.com/docs/reference/kotlin/auth-getclaims
+- Supabase React + Vite quickstart: https://supabase.com/docs/guides/auth/quickstarts/react
+- Supabase pricing: https://supabase.com/pricing
+- Supabase Terms of Service: https://supabase.com/terms
