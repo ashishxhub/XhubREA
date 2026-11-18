@@ -291,7 +291,7 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [x] Added backend startup configuration validation for supported runtime modes, exact CORS origins, and server-side Antigravity key presence.
 - [x] Added a fail-closed production startup gate because OIDC user identity and owner-scoped authorization are not yet implemented or verified.
 - [x] Added unit tests for valid development config, invalid runtime, production block, wildcard/remote-HTTP CORS rejection, exact HTTPS origin acceptance, and AI-key configuration.
-- [ ] Python CI for commits `951ad52a8a3659e50a7ceac0324508f117b3530a` and `123dc5a8357872322c7924ef90761f6251830fb7` must pass before marking this module VERIFIED.
+- [x] Python CI passed on test commit `123dc5a8357872322c7924ef90761f6251830fb7` (run `44237630235`): module compilation, unit tests and optional Antigravity SDK import smoke test all succeeded.\n- [x] Web Dashboard CI passed on the same test commit (run `44237630236`). Android CI run `44237630260` was still in progress at tracker update time.
 - [ ] Web dependencies are still declared as `latest`; pinning and a genuine npm lockfile are pending. Do not fabricate a lockfile without running npm.
 - [ ] Gradle wrapper setup is pending; no wrapper binary/scripts have been added.
 - [ ] Android device QA, production identity, database ownership and public deployment remain separate release gates.
