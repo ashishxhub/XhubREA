@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { checkBackendHealth, sendResearchMessage, structureResearchEvidence } from "./api.js";
+import { checkBackendHealth, sendResearchMessage, structureResearchEvidence, compareAppSnapshots } from "./api.js";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -62,4 +62,34 @@ describe("XhubREA backend client", () => {
     expect(() => structureResearchEvidence({ baseUrl: "https://api.example.com" }, []))
       .toThrow("between 1 and 12");
   });
+
+  it("posts two validated app snapshots with bearer authentication", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ app_a: { app_label: "A" }, app_b: { app_label: "B" } })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const appA = { app_label: " App A ", permissions: ["camera"] };
+    const appB = { app_label: "App B", architecture: ["MVVM"] };
+    await expect(compareAppSnapshots({
+      baseUrl: "https://api.example.com", token: "session-token"
+    }, appA, appB)).resolves.toHaveProperty("app_a.app_label", "A");
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.example.com/v1/apps/compare");
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe("Bearer session-token");
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.app_a.app_label).toBe("App A");
+    expect(body.app_a.permissions).toEqual(["camera"]);
+    expect(body.app_b.architecture).toEqual(["MVVM"]);
+  });
+
+  it("rejects oversized and blank app comparison labels before fetch", () => {
+    expect(() => compareAppSnapshots({ baseUrl: "https://api.example.com" },
+      { app_label: " " }, { app_label: "B" })).toThrow("App A label");
+    expect(() => compareAppSnapshots({ baseUrl: "https://api.example.com" },
+      { app_label: "A", permissions: Array(201).fill("camera") },
+      { app_label: "B" })).toThrow("at most 200");
+    expect(() => compareAppSnapshots({ baseUrl: "https://api.example.com" },
+      { app_label: "A", components: ["x".repeat(301)] },
+      { app_label: "B" })).toThrow("up to 300");
+  });
+
 });
