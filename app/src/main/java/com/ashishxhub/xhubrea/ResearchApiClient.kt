@@ -7,7 +7,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Small HTTPS-only client for the shared XhubREA research backend.
+ * HTTPS-only client for XhubREA's read-only research backend.
  * The bearer token is supplied at call time and is never persisted by this class.
  */
 class ResearchApiClient(
@@ -16,7 +16,8 @@ class ResearchApiClient(
     private val connectTimeoutMs: Int = 10_000,
     private val readTimeoutMs: Int = 20_000
 ) {
-    suspend fun checkHealth(): JSONObject = request("/health", null)
+    // The backend health endpoint is public; do not require or send a bearer token.
+    suspend fun checkHealth(): JSONObject = request("/health", null, authenticated = false)
 
     suspend fun sendMessage(prompt: String): String {
         val cleanPrompt = prompt.trim()
@@ -28,16 +29,20 @@ class ResearchApiClient(
             ?: throw IllegalStateException("Backend returned an invalid response.")
     }
 
-    private suspend fun request(path: String, body: JSONObject?): JSONObject = withContext(Dispatchers.IO) {
+    private suspend fun request(
+        path: String,
+        body: JSONObject?,
+        authenticated: Boolean = true
+    ): JSONObject = withContext(Dispatchers.IO) {
         val normalizedBase = validateBaseUrl(baseUrl)
-        require(bearerToken.isNotBlank()) { "Backend bearer token is required." }
+        if (authenticated) require(bearerToken.isNotBlank()) { "Backend bearer token is required." }
 
         val connection = (URL(normalizedBase + path).openConnection() as HttpURLConnection).apply {
             requestMethod = if (body == null) "GET" else "POST"
             connectTimeout = connectTimeoutMs
             readTimeout = readTimeoutMs
             setRequestProperty("Accept", "application/json")
-            setRequestProperty("Authorization", "Bearer $bearerToken")
+            if (authenticated) setRequestProperty("Authorization", "Bearer $bearerToken")
             if (body != null) {
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json; charset=utf-8")
