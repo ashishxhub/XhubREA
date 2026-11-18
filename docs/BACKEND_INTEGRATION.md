@@ -12,8 +12,8 @@ This document is the shared integration reference for the React web dashboard, n
 - Protected routes: all `/v1/*` routes require `Authorization: Bearer <access-token>`.
 - The server reads `XHUBREA_API_TOKEN`. This is a server-side secret and must never be embedded in Android resources, an APK, web source, browser storage, or a public repository.
 - Browser CORS is disabled unless `XHUBREA_CORS_ORIGINS` contains an explicit comma-separated origin allowlist. Credentials are not enabled; allowed methods are GET/POST and allowed headers are Authorization/Content-Type.
-- The current process-local rate limit (10 requests per rolling minute) applies to `/v1/agent/chat` and `/v1/research/analyze`. `/v1/research/structure` currently has no rate-limit call; enforce gateway limits before public deployment.
-- The current token is a single shared bearer secret, not end-user identity or production-grade user authentication. Do not distribute it to public clients.
+- The current process-local rate limit (10 requests per rolling minute) applies to all three protected routes: `/v1/agent/chat`, `/v1/research/analyze`, and `/v1/research/structure`. It is process-local only; enforce shared gateway limits before public deployment.
+- The current token is a single shared bearer secret, not end-user identity or production-grade user authentication. It provides no per-user identity, ownership filtering, or cross-account isolation. Do not distribute it to public clients.
 
 ## Endpoints
 
@@ -127,7 +127,7 @@ Error responses use FastAPI's `detail` field where applicable. Clients should di
 | Web health/chat client | Implemented; live deployment not verified |
 | Web evidence-structure client | Implemented; not yet connected in the UI |
 | Android remote API client | Not implemented; intentionally held until safe user auth exists |
-| Public production authentication | Not ready; current shared bearer token is an interim owner-controlled mechanism |
+| Public production authentication and per-user data isolation | Not ready; current shared bearer token is an interim owner-controlled mechanism |
 | Deployed HTTPS/CORS/provider end-to-end test | Not verified |
 
 This contract describes the current code and explicitly records the gaps; it is not a claim that a production backend is deployed.
