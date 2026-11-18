@@ -190,3 +190,14 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Run targeted Python/Web tests and CI for the new contract commit; no test run has yet been confirmed for this documentation-only update.
 - [ ] Deploy HTTPS backend, configure exact CORS origins and server-managed credentials, then run authenticated end-to-end tests.
 - Documentation commit: `ebb6b8cf9421976ff3de720dc2fb3627b8cdd050`.
+
+
+### Backend Integration Phase 2.1 — API rate-limit hardening (2026-11-18)
+- [x] Added a thread lock around the in-process rolling-window limiter to avoid concurrent requests racing the shared deque.
+- [x] Applied the same limiter to `POST /v1/research/structure`; previously only chat and analyze were rate-limited.
+- [x] Added unit coverage for the 10-request cap, exact 60-second expiry boundary, and structure endpoint rate limiting.
+- [ ] Python tests/CI have not yet run for these commits; do not mark this work VERIFIED until the workflow passes.
+- [ ] The in-process limiter is per worker/process and is not a substitute for shared gateway limits in production.
+- [ ] Public production authentication remains blocked on replacing the shared bearer token with user-scoped sessions.
+- API implementation commit: `668ade89e5f155b0ab9670f3549030a15cb66e1a`.
+- Test commit: `8e692fb8b1fa9fd3d5a7765b2c1f92979447ed49`.
