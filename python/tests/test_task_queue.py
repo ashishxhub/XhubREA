@@ -23,6 +23,14 @@ class TaskQueueTests(unittest.TestCase):
                          [high["task"]["task_id"], medium["task"]["task_id"],
                           low["task"]["task_id"]])
 
+    def test_scheduler_is_read_only_and_does_not_claim_tasks(self):
+        result = self.queue.enqueue("Do not auto-run", created_by="operator")
+        first = self.queue.next_tasks()
+        second = self.queue.next_tasks()
+        self.assertEqual(first[0]["task"]["task_id"], result["task"]["task_id"])
+        self.assertEqual(second[0]["task"]["task_id"], result["task"]["task_id"])
+        self.assertEqual(self.store.get_task(result["task"]["task_id"])["status"], "queued")
+
     def test_department_metadata_is_preserved(self):
         result = self.queue.enqueue("Analyze APK", created_by="operator",
                                     department_id="android", priority=7)
