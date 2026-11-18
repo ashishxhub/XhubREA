@@ -149,3 +149,11 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [x] Kept the overview analysis workspace scrollable above the navigation bar.
 - [ ] Run Kotlin compile, Android lint, unit tests and emulator/device checks; not yet verified.
 - Implementation commit: `3dd7ea20745a6e5f5ac055769cf07da404af61e6`.
+
+
+### Android + Web CI verification (2026-11-18)
+- [x] Android CI passed on commit `3dd7ea20745a6e5f5ac055769cf07da404af61e6` (run 44231486300): Android lint, unit tests, debug APK build, unsigned release bundle build, and artifact uploads all succeeded.
+- [x] Web Dashboard CI passed on the same commit (run 44231486293).
+- [ ] Physical-device/emulator navigation, screen clipping, accessibility and report-export interaction checks remain outstanding; CI success is not a substitute for runtime UX testing.
+- Android workflow: https://github.com/ashishxhub/XhubREA/actions/runs/44231486300
+- Web workflow: https://github.com/ashishxhub/XhubREA/actions/runs/44231486293
