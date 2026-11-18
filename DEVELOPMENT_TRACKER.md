@@ -272,3 +272,16 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Architecture is a plan, not implementation; provider, hosting, database and storage decisions remain open or unconfigured.
 - [ ] Next implementation step: Phase 0 baseline reconciliation, then Phase 1 API contract/config validation; identity implementation remains gated on eligible account-holder review and real provider setup.
 - Blueprint commit: `cd98a70e206042b89dc300507ae3239774c00f41`.
+
+
+### Phase 0 — Repository architecture audit (2026-11-18)
+- [x] Inspected repository tree (74 entries), branch HEAD, PR #20 state, Android/Gradle configuration, Python API/adapter, Web dashboard, docs and CI workflows.
+- [x] Confirmed PR #20 remains OPEN and UNMERGED into main.
+- [x] Confirmed exact audited HEAD `c89251c4394b3474736ffebc74bfb6401c4532ba`: Python workflow 44236170908 passed (unit tests + optional Antigravity SDK install/import smoke test); Android workflow 44236170870 passed (lint, unit tests, debug APK and unsigned AAB packaging).
+- [x] Recorded that Web CI was not run for this docs-only HEAD; prior Web CI success belongs to an earlier code commit.
+- [x] Documented existing Android APK-analysis features, Python research API, Web preview/client, existing tests and components to preserve.
+- [x] Documented missing production identity, PostgreSQL/migrations, owner isolation, private object storage, distributed queue/rate limits, deployment, observability and signing.
+- [x] Added `docs/REPOSITORY_AUDIT_PHASE0.md`.
+- [ ] Real Android device QA, live Gemini authentication, deployed backend E2E, database/storage tests and production security validation remain outstanding.
+- [ ] Next task: Phase 1 — reproducible build and configuration foundation (Gradle wrapper, pinned Web dependencies/lockfile, config validation).
+- Audit report commit: `cfd1ff2e2d5f628ea022507dd55c5605c43b786a`.
