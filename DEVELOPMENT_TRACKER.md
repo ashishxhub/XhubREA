@@ -157,3 +157,14 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Physical-device/emulator navigation, screen clipping, accessibility and report-export interaction checks remain outstanding; CI success is not a substitute for runtime UX testing.
 - Android workflow: https://github.com/ashishxhub/XhubREA/actions/runs/44231486300
 - Web workflow: https://github.com/ashishxhub/XhubREA/actions/runs/44231486293
+
+
+### Android runtime QA handoff (2026-11-18)
+- [x] Confirmed latest Android CI job on commit `1044194f03f7b818b52957ba7bcd06c53095a1e2` completed successfully (run 44231955958); lint, unit tests, debug APK, and unsigned release bundle steps all passed.
+- [x] Confirmed debug APK artifact exists: `XhubREA-debug-apk` (artifact ID 14395616884; SHA-256 `b384128986c47714fe20ee7156d0efeaca75dce5295beadcfe6898903cc3c098`).
+- [x] Confirmed Web Dashboard CI run 44231956061 passed component tests and production build.
+- [ ] Physical-device/emulator runtime QA is BLOCKED pending installation and interaction on an Android device; GitHub Actions runner only built the APK and did not launch the app in an emulator.
+- [ ] Manual checks required: cold launch; tap Overview/APK/Research/Reports/Settings in sequence; verify selected-state and screen content; rotate/reopen; verify bottom bar does not cover scroll content; choose a permitted test APK and run analysis; open Research quick prompts; export report; revisit Settings and confirm preferences persist.
+- [ ] Record device model, Android version, screenshots/logcat for any issue, then fix and rerun CI. Do not mark runtime QA VERIFIED from build success alone.
+- Debug APK workflow run: https://github.com/ashishxhub/XhubREA/actions/runs/44231955958
+- Web workflow run: https://github.com/ashishxhub/XhubREA/actions/runs/44231956061
