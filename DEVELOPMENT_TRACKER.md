@@ -123,3 +123,12 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [x] Standardized supporting text (#EDF1F8 / #929EAF) and borders (#293241); removed competing decorative accent colors from the primary visual hierarchy.
 - [x] Added matching 60-30-10 token overrides to the web dashboard stylesheet.
 - [ ] Android runtime theme/build verification remains pending; Figma Android frame is a design reference and does not itself change the installed APK.
+
+
+### Android Research Assistant MVP (2026-11-18)
+- [x] Added a dedicated Research Assistant experience inside the Research tab.
+- [x] Added a question composer and quick prompts for APK explanation, permissions, unknowns and network findings.
+- [x] Answers are generated only from the locally available APK/research reports and label missing evidence.
+- [x] Clearly disclosed that this MVP is local report Q&A, not a connected cloud LLM.
+- [ ] Add structured evidence references and richer report parsing.
+- [ ] Run Android compile, lint and emulator/device checks; not yet verified.
