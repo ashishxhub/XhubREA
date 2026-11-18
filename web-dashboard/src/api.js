@@ -56,3 +56,30 @@ export function structureResearchEvidence(config, findings) {
   }
   return request("/v1/research/structure", { ...config, method: "POST", body: { findings } });
 }
+
+
+/** Compare two caller-provided metadata inventories; no app files are uploaded. */
+export function compareAppSnapshots(config, appA, appB) {
+  const categories = ["permissions", "components", "source_structure", "dependencies", "architecture"];
+  function validateSnapshot(snapshot, name) {
+    if (!snapshot || typeof snapshot.app_label !== "string" ||
+        !snapshot.app_label.trim() || snapshot.app_label.length > 300) {
+      throw new Error(`${name} label must contain 1–300 non-blank characters.`);
+    }
+    const normalized = { app_label: snapshot.app_label.trim() };
+    for (const category of categories) {
+      const values = snapshot[category] ?? [];
+      if (!Array.isArray(values) || values.length > 200 ||
+          values.some(value => typeof value !== "string" || !value.trim() || value.length > 300)) {
+        throw new Error(`${name} ${category} must contain at most 200 non-blank labels of up to 300 characters.`);
+      }
+      normalized[category] = values;
+    }
+    return normalized;
+  }
+  return request("/v1/apps/compare", {
+    ...config,
+    method: "POST",
+    body: { app_a: validateSnapshot(appA, "App A"), app_b: validateSnapshot(appB, "App B") }
+  });
+}
