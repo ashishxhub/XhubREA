@@ -155,6 +155,8 @@ private fun XhubReaDashboard() {
 
     var showSettings by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf("Overview") }
+    var researchQuestion by remember { mutableStateOf("") }
+    var researchAnswer by remember { mutableStateOf("Ask about the currently available APK and research reports. Answers are grounded in local findings only.") }
     var simpleExplain by remember { mutableStateOf(preferences.getBoolean("simple_explain", true)) }
     var showHints by remember { mutableStateOf(preferences.getBoolean("show_hints", true)) }
     var smoothMotion by remember { mutableStateOf(preferences.getBoolean("smooth_motion", false)) }
@@ -368,12 +370,44 @@ private fun XhubReaDashboard() {
                     }
                     "Research" -> {
                         item {
-                            SectionHeading("Research Intelligence", "Read-only findings with evidence and confidence context.")
-                            InfoCard("Research Lab", fullResearchReport)
-                            InfoCard("Network Intelligence", networkIntelligenceReport)
-                            InfoCard("Privacy Intelligence", privacyIntelligenceReport)
-                            InfoCard("Human Behaviour Intelligence", humanBehaviourReport)
-                            InfoCard("Python Resource Intelligence", resourceIntelligenceReport)
+                            SectionHeading("Research Assistant", "Ask questions about the reports generated on this device.")
+                            InfoCard("Evidence mode", "LOCAL REPORTS ONLY • Read-only • No cloud AI is connected in this screen. Answers may say when evidence is unavailable.")
+                            OutlinedTextField(
+                                value = researchQuestion,
+                                onValueChange = { researchQuestion = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Ask about this APK or its reports") },
+                                placeholder = { Text("Example: Which permissions were found?") },
+                                minLines = 2
+                            )
+                            Button(
+                                onClick = {
+                                    researchAnswer = answerFromLocalResearch(
+                                        researchQuestion, apkReport, fullAnalysisSummary,
+                                        fullResearchReport, networkIntelligenceReport,
+                                        privacyIntelligenceReport, humanBehaviourReport,
+                                        resourceIntelligenceReport
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = researchQuestion.isNotBlank()
+                            ) { Text("Ask Research Assistant") }
+                            Text("Quick questions", style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            listOf("Explain this APK", "What permissions were found?", "What is still unknown?", "Summarize network findings").forEach { prompt ->
+                                TextButton(onClick = {
+                                    researchQuestion = prompt
+                                    researchAnswer = answerFromLocalResearch(
+                                        prompt, apkReport, fullAnalysisSummary,
+                                        fullResearchReport, networkIntelligenceReport,
+                                        privacyIntelligenceReport, humanBehaviourReport,
+                                        resourceIntelligenceReport
+                                    )
+                                }) { Text(prompt) }
+                            }
+                            InfoCard("Answer • local evidence", researchAnswer)
+                            InfoCard("APK metadata", apkReport.take(1800))
+                            InfoCard("Research Lab", fullResearchReport.take(1800))
                         }
                     }
                     "Reports" -> {
@@ -2830,5 +2864,48 @@ private fun formatResourceIntelligenceReport(rawJson: String): String {
         }
     }.getOrElse { error ->
         "Python resource intelligence could not be formatted: ${error.message ?: "Invalid report"}\n\nRaw report:\n${rawJson.take(6000)}"
+    }
+}
+
+
+/**
+ * Conservative local report Q&A. It never invents findings or claims to be an LLM.
+ * Each answer names the local report it used and calls out missing evidence.
+ */
+private fun answerFromLocalResearch(
+    question: String,
+    apk: String,
+    summary: String,
+    research: String,
+    network: String,
+    privacy: String,
+    behaviour: String,
+    resources: String
+): String {
+    val q = question.lowercase()
+    fun available(report: String) = report.isNotBlank() &&
+        !report.startsWith("No APK") &&
+        !report.startsWith("Run Complete") &&
+        !report.startsWith("Choose an APK") &&
+        !report.startsWith("Run Full")
+    fun excerpt(report: String, label: String): String =
+        if (available(report)) "$label (local report):\\n" + report.take(2200)
+        else "$label: No result is available yet. Run the relevant analysis first."
+    return when {
+        q.contains("permission") -> excerpt(apk.substringAfter("Permission analysis", apk), "Permission analysis")
+        q.contains("network") || q.contains("api") -> excerpt(network, "Network Intelligence")
+        q.contains("privacy") || q.contains("data") -> excerpt(privacy, "Privacy Intelligence")
+        q.contains("behavio") || q.contains("user") -> excerpt(behaviour, "Human Behaviour Intelligence")
+        q.contains("resource") || q.contains("asset") -> excerpt(resources, "Resource Intelligence")
+        q.contains("unknown") || q.contains("limit") || q.contains("not tested") ->
+            "Known limitation: XhubREA only reports what its current local analyzers inspected.\\n" +
+                listOf(excerpt(apk, "APK metadata"), excerpt(research, "Research Lab"),
+                    "Network: " + if (available(network)) "report available" else "not analyzed",
+                    "Privacy: " + if (available(privacy)) "report available" else "not analyzed").joinToString("\\n\\n") +
+                "\\n\\nA missing result is not proof that an issue exists or does not exist."
+        q.contains("explain") || q.contains("summar") || q.contains("apk") ->
+            listOf(excerpt(apk, "APK metadata"), excerpt(summary, "Analysis summary"),
+                excerpt(research, "Research Lab")).joinToString("\\n\\n")
+        else -> "I can answer from local reports about APK metadata, permissions, network, privacy, behaviour, resources, or analysis limitations. Try one of the quick questions.\\n\\nNo evidence was inferred beyond the reports currently stored on this device."
     }
 }
