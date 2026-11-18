@@ -201,3 +201,18 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Public production authentication remains blocked on replacing the shared bearer token with user-scoped sessions.
 - API implementation commit: `668ade89e5f155b0ab9670f3549030a15cb66e1a`.
 - Test commits: `8e692fb8b1fa9fd3d5a7765b2c1f92979447ed49`, `577141972308a0b6d657706521f244fc778fe147` (made the endpoint rate-limit test clock deterministic).
+
+
+### Security verification — API authentication baseline (2026-11-18)
+- [x] Added regression tests for missing/malformed/wrong-scheme/incorrect bearer headers.
+- [x] Added a route-registration guard ensuring every `/v1/*` endpoint depends on server-side token authentication.
+- [x] Added a guard confirming `/health` remains public and is not an authenticated readiness signal.
+- [x] Added `docs/SECURITY_TEST_REPORT.md` with findings, risk ratings, safe test scope and release gates.
+- [x] Corrected backend contract documentation: the rolling limiter now covers chat, analyze and evidence-structure endpoints.
+- [ ] Python CI execution for the new tests is pending; do not mark security tests VERIFIED until Actions passes.
+- [ ] **Critical release blocker:** shared bearer token is not end-user identity. User-specific profiles/projects/reports and server-enforced ownership isolation are not implemented.
+- [ ] OIDC + PKCE, verified user claims, ownership filters/database row-level controls, and cross-account negative tests remain required before multi-user public release.
+- [ ] Gateway-level distributed rate limits, production HTTPS, secret management, audit logging and deployment checks remain outstanding.
+- Security regression tests commit: `62161440035bb6ef5fc7f8ca14f7bf66e35ed037`.
+- Security report commit: `3eb82bb50522a197e15a80df992fede27f73a871`.
+- Backend contract correction commit: `ec6d0b3a34d99e86d78f3f3a79eb707b42028edd`.
