@@ -228,3 +228,14 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] Production deployment controls (OIDC/PKCE, HTTPS, distributed gateway limits, secret management, audit logging) remain outstanding.
 - Python workflow: https://github.com/ashishxhub/XhubREA/actions/runs/44234291071
 - Test-fix commit: `4dd5cb2b2efa1ed5c0b24dbe9237774516bce366`.
+
+
+### User data isolation — design and test plan (2026-11-18)
+- [x] Inspected the current FastAPI routes and confirmed they use one shared bearer token, with no verified end-user identity or owner-scoped persisted resources.
+- [x] Added `docs/USER_DATA_ISOLATION.md` defining the trusted identity contract, resource ownership matrix, implementation sequence and two-account negative test suite.
+- [x] Explicitly recorded that cross-account isolation is currently not testable because there are no authenticated user principals or persisted user-owned API resources.
+- [ ] Select/configure an OIDC provider; then implement backend token verification and server-derived principal.
+- [ ] Add owner-scoped persistence and authorization for profiles, projects, files, analysis, research history and reports.
+- [ ] Implement and pass User A/User B cross-account integration tests against production-equivalent database and object storage.
+- [ ] Multi-user release remains BLOCKED until all ownership checks and negative tests pass.
+- Design commit: `3dacd5663dfe23740b192d4827a6628555e9abe8`.
