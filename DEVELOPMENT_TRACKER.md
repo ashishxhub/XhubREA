@@ -263,3 +263,12 @@ The V2 Android change so far is a Material 3 color-token alignment only. It does
 - [ ] After approval and secure configuration, implement FastAPI JWT/JWKS verification and negative claim tests before connecting either client.
 - [ ] Existing shared bearer token remains private-development-only; no public multi-user release.
 - Assessment document commit: `7da259725d84ed9b9f10c653e29a26cb7545591f`.
+
+
+### Master integration blueprint v1.0 (2026-11-18)
+- [x] Added `docs/MASTER_INTEGRATION_BLUEPRINT.md` covering Android, Web, FastAPI, identity, PostgreSQL, object storage, Redis/jobs, AI provider adapters, Agent Manager, API contracts, security, testing, operations and phased rollout.
+- [x] Distinguished existing implementation from proposed/not-connected services and defined P0-P3 priorities.
+- [x] Recorded production release gates, two-account isolation requirements and authorized read-only APK analysis boundaries.
+- [ ] Architecture is a plan, not implementation; provider, hosting, database and storage decisions remain open or unconfigured.
+- [ ] Next implementation step: Phase 0 baseline reconciliation, then Phase 1 API contract/config validation; identity implementation remains gated on eligible account-holder review and real provider setup.
+- Blueprint commit: `cd98a70e206042b89dc300507ae3239774c00f41`.
