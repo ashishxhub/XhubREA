@@ -33,6 +33,13 @@ class ExecutorTests(unittest.TestCase):
         with self.assertRaises(ExecutorDisabledError):
             DisabledExecutor().execute(ExecutionRequest("task-1", "inspect"))
 
+    def test_missing_executor_never_starts_task_even_if_flag_is_set(self):
+        task = self.store.create_task("Inspect", created_by="operator")
+        guard = GuardedExecutor(self.store, execution_enabled=True)
+        with self.assertRaises(ExecutorDisabledError):
+            guard.execute_task(task["task_id"], actor_id="operator")
+        self.assertEqual(self.store.get_task(task["task_id"])["status"], "queued")
+
     def test_guard_is_disabled_by_default(self):
         task = self.store.create_task("Inspect authorized metadata", created_by="operator")
         fake = FakeExecutor()
