@@ -186,3 +186,9 @@ async def research_structure(payload: ResearchStructureRequest) -> dict:
 from xhubrea_engine.apk_research_api import create_apk_research_router
 
 app.include_router(create_apk_research_router(require_api_token, _enforce_rate_limit))
+
+
+# Keep app snapshot comparison bounded and metadata-only.
+from xhubrea_engine.app_comparison_api import create_app_comparison_router
+
+app.include_router(create_app_comparison_router(require_api_token, _enforce_rate_limit))
